@@ -1,0 +1,114 @@
+:root {
+  --bg-dark: #050505;
+  --bg-panel: rgba(25, 25, 25, 0.6);
+  --bg-panel-hover: rgba(40, 40, 40, 0.7);
+  --border-color: rgba(255, 255, 255, 0.1);
+  
+  --neon-green: #00ff9d;
+  --neon-red: #ff003c;
+  --neon-cyan: #00f3ff;
+  --neon-purple: #bc13fe;
+  
+  --text-primary: #ffffff;
+  --text-secondary: #a0a0a0;
+  
+  --glass-shadow: 0 4px 30px rgba(0, 0, 0, 0.5);
+  --backdrop-blur: blur(10px);
+  
+  --font-family: 'Inter', system-ui, -apple-system, sans-serif;
+}
+
+body {
+  margin: 0;
+  background-color: var(--bg-dark);
+  color: var(--text-primary);
+  font-family: var(--font-family);
+  overflow-x: hidden;
+  min-height: 100vh;
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-dark);
+}
+
+::-webkit-scrollbar-thumb {
+  background: #333;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}
+
+/* Utilities */
+.glass-panel {
+  background: var(--bg-panel);
+  backdrop-filter: var(--backdrop-blur);
+  -webkit-backdrop-filter: var(--backdrop-blur);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  box-shadow: var(--glass-shadow);
+}
+
+.neon-text-green {
+  color: var(--neon-green);
+  text-shadow: 0 0 10px rgba(0, 255, 157, 0.5);
+}
+
+.neon-text-red {
+  color: var(--neon-red);
+  text-shadow: 0 0 10px rgba(255, 0, 60, 0.5);
+}
+
+.neon-border-green {
+  border: 1px solid var(--neon-green);
+  box-shadow: 0 0 15px rgba(0, 255, 157, 0.2);
+}
+
+.neon-border-red {
+  border: 1px solid var(--neon-red);
+  box-shadow: 0 0 15px rgba(255, 0, 60, 0.2);
+}
+
+.btn-primary {
+  background: transparent;
+  color: var(--neon-cyan);
+  border: 1px solid var(--neon-cyan);
+  padding: 0.8rem 1.5rem;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.2s ease;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.btn-primary:hover {
+  background: rgba(0, 243, 255, 0.1);
+  box-shadow: 0 0 20px rgba(0, 243, 255, 0.4);
+}
+
+.btn-danger {
+  background: rgba(255, 0, 60, 0.1);
+  color: var(--neon-red);
+  border: 1px solid var(--neon-red);
+  padding: 1rem 2rem;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 700;
+  font-size: 1.2rem;
+  transition: all 0.2s ease;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  width: 100%;
+}
+
+.btn-danger:active {
+  background: var(--neon-red);
+  color: black;
+  box-shadow: 0 0 50px rgba(255, 0, 60, 0.8);
+}
