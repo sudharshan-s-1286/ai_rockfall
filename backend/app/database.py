@@ -1,21 +1,17 @@
-from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
-from sqlalchemy.orm import sessionmaker, declarative_base
+from motor.motor_asyncio import AsyncIOMotorClient
 from app.config import get_settings
+
+import certifi
 
 settings = get_settings()
 
-engine = create_async_engine(
-    settings.DATABASE_URL,
-    echo=settings.DEBUG,
-    future=True
+# WARNING: Insecure for production, but needed for local Windows dev in some envs
+client = AsyncIOMotorClient(
+    settings.MONGODB_URI, 
+    tlsCAFile=certifi.where(),
+    tlsAllowInvalidCertificates=True
 )
-
-AsyncSessionLocal = sessionmaker(
-    engine, class_=AsyncSession, expire_on_commit=False
-)
-
-Base = declarative_base()
+db = client[settings.MONGODB_DB_NAME]
 
 async def get_db():
-    async with AsyncSessionLocal() as session:
-        yield session
+    return db

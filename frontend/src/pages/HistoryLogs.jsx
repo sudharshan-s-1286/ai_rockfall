@@ -16,7 +16,7 @@ const HistoryLogs = () => {
             const res = await fetch('http://localhost:8000/history/all');
             if (res.ok) {
                 const data = await res.json();
-                setLogs(data); // Assuming data is array
+                setLogs(Array.isArray(data) ? data : []);
             }
         } catch (e) {
             console.error(e);
@@ -54,10 +54,10 @@ const HistoryLogs = () => {
                         value={filter}
                         onChange={(e) => setFilter(e.target.value)}
                     >
-                        <option value="ALL">ALL EVENTS</option>
-                        <option value="HIGH">HIGH RISK</option>
-                        <option value="MEDIUM">MEDIUM RISK</option>
-                        <option value="LOW">LOW RISK</option>
+                        <option value="ALL" style={{ color: 'black' }}>ALL EVENTS</option>
+                        <option value="HIGH" style={{ color: 'black' }}>HIGH RISK</option>
+                        <option value="MEDIUM" style={{ color: 'black' }}>MEDIUM RISK</option>
+                        <option value="LOW" style={{ color: 'black' }}>LOW RISK</option>
                     </select>
 
                     <button className="btn-primary" onClick={downloadCSV}>
@@ -85,12 +85,12 @@ const HistoryLogs = () => {
                             borderBottom: '1px solid rgba(255,255,255,0.05)',
                             color: log.risk_level === 'HIGH' ? 'var(--neon-red)' : 'inherit'
                         }}>
-                            <span>#{log.id}</span>
+                            <span>#{log.id.substring(0, 6)}...</span>
                             <span>{new Date(log.timestamp).toLocaleString()}</span>
                             <span style={{ fontWeight: 'bold' }}>{log.risk_level}</span>
-                            <span>{(log.max_confidence * 100).toFixed(1)}%</span>
-                            <span>{log.crack_count}</span>
-                            <span>{log.source || 'Upload'}</span>
+                            <span>{log.type === 'DETECTION' ? log.details.split('(')[1]?.replace(')', '') : '-'}</span>
+                            <span>{log.type === 'DETECTION' ? log.details.split(' ')[0] : '-'}</span>
+                            <span>{log.source}</span>
                         </div>
                     ))}
                 </div>

@@ -1,9 +1,10 @@
 import React from 'react';
-import { NavLink, Outlet } from 'react-router-dom';
+import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import Navbar from './Navbar';
 import {
     FaVideo, FaImage, FaExclamationTriangle, FaHistory,
-    FaCloudSun, FaMapMarkedAlt, FaServer, FaCog, FaMountain, FaUserShield
+    FaCloudSun, FaMapMarkedAlt, FaServer, FaCog, FaMountain, FaUserShield,
+    FaSignOutAlt
 } from 'react-icons/fa';
 
 const SidebarItem = ({ to, icon: Icon, label }) => (
@@ -40,6 +41,13 @@ const SidebarItem = ({ to, icon: Icon, label }) => (
 );
 
 const Layout = ({ connectionStatus }) => {
+    const navigate = useNavigate();
+
+    const handleLogout = () => {
+        localStorage.removeItem('isAuthenticated'); // Clear auth
+        navigate('/');
+    };
+
     return (
         <div style={{ display: 'flex', height: '100vh', width: '100vw', overflow: 'hidden' }}>
             {/* Sidebar */}
@@ -77,6 +85,21 @@ const Layout = ({ connectionStatus }) => {
                     <SidebarItem to="/admin" icon={FaUserShield} label="Administration" />
                     <SidebarItem to="/history" icon={FaHistory} label="History Logs" />
                     <SidebarItem to="/settings" icon={FaCog} label="Settings" />
+
+                    <div style={{ height: '1px', background: 'var(--border-color)', margin: '16px 0' }}></div>
+
+                    <button
+                        onClick={handleLogout}
+                        className="sidebar-item"
+                        style={{
+                            display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px',
+                            background: 'transparent', border: 'none', width: '100%', cursor: 'pointer',
+                            color: '#ff4444', borderRadius: '8px', fontSize: '1rem', textAlign: 'left'
+                        }}
+                    >
+                        <FaSignOutAlt size={20} />
+                        <span>Logout</span>
+                    </button>
                 </div>
 
                 {/* Status Footer */}

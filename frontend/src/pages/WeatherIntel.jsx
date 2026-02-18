@@ -1,89 +1,191 @@
 import React, { useState, useEffect } from 'react';
-import { FaCloudSun, FaExclamationTriangle, FaCheckCircle, FaWind } from 'react-icons/fa';
+import { FaCloudSun, FaExclamationTriangle, FaCheckCircle, FaWind, FaTint, FaThermometerHalf, FaHistory } from 'react-icons/fa';
 
 const WeatherIntel = () => {
     const [data, setData] = useState(null);
+    const [history, setHistory] = useState([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
         fetchWeather();
+        fetchHistory();
     }, []);
+
+    const fetchHistory = async () => {
+        try {
+            const res = await fetch('http://localhost:8000/history/weather?limit=10');
+            const json = await res.json();
+            setHistory(Array.isArray(json) ? json : []);
+        } catch (e) {
+            console.error("Failed to fetch history", e);
+        }
+    };
 
     const fetchWeather = async () => {
         try {
             const res = await fetch('http://localhost:8000/weather/decision');
-            // If endpoint doesn't exist yet or is renamed, we might need a fallback, 
-            // but assuming it matches logic I saw in weather_service
             const json = await res.json();
             setData(json);
         } catch (e) {
             console.error(e);
-            // Fallback
-            setData({ condition: "Sunny", temperature: 32, decision: "SAFE", reason: "Good weather" });
+            setData({ condition: "Sunny", temperature: 32, decision: "SAFE", reason: "System offline, displaying fallback data." });
         }
         setLoading(false);
     };
 
-    if (loading) return <div style={{ padding: '2rem' }}>Loading Forecast...</div>;
+    if (loading) return (
+        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%', color: 'var(--neon-cyan)' }}>
+            <FaCloudSun size={50} className="spin" />
+            <span style={{ marginLeft: '1rem', fontSize: '1.5rem' }}>Analyzing Atmospherics...</span>
+        </div>
+    );
 
     const isSafe = data?.decision === 'SAFE';
+    const riskColor = data?.risk_level === 'HIGH' ? 'var(--neon-red)' : data?.risk_level === 'MEDIUM' ? 'var(--warning)' : 'var(--neon-green)';
 
     return (
-        <div style={{ padding: '2rem', height: '100%', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', gap: '2rem' }}>
-            <h1 style={{ marginBottom: '0', display: 'flex', alignItems: 'center', gap: '15px' }}>
-                <FaCloudSun color="var(--neon-cyan)" /> WEATHER INTEL
-            </h1>
-
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem', flex: 1 }}>
-
-                {/* Main Decision Card */}
-                <div className="glass-panel" style={{
-                    display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-                    border: isSafe ? '2px solid var(--neon-green)' : '2px solid var(--neon-red)',
-                    boxShadow: isSafe ? '0 0 30px rgba(0, 255, 157, 0.2)' : '0 0 30px rgba(255, 0, 60, 0.2)'
-                }}>
-                    {isSafe ? <FaCheckCircle size={80} color="var(--neon-green)" /> : <FaExclamationTriangle size={80} color="var(--neon-red)" />}
-
-                    <h2 style={{ fontSize: '3rem', margin: '2rem 0 1rem', color: isSafe ? 'var(--neon-green)' : 'var(--neon-red)' }}>
-                        {isSafe ? 'MINING SAFE' : 'STOP MINING'}
-                    </h2>
-
-                    <p style={{ fontSize: '1.2rem', color: '#ccc', textAlign: 'center' }}>
-                        {data?.reason}
-                    </p>
+        <div style={{ padding: '2rem', height: '100%', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+            {/* Header */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '1rem' }}>
+                <h1 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '15px', fontSize: '2rem', letterSpacing: '2px' }}>
+                    <FaCloudSun color="var(--neon-cyan)" />
+                    <span style={{ background: '-webkit-linear-gradient(45deg, #00f2ea, #00c6fb)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+                        WEATHER INTEL
+                    </span>
+                </h1>
+                <div style={{ display: 'flex', gap: '1rem' }}>
+                    <span className="badge" style={{ background: 'rgba(0, 242, 234, 0.1)', color: 'var(--neon-cyan)', border: '1px solid var(--neon-cyan)' }}>
+                        LIVE FEED
+                    </span>
                 </div>
+            </div>
 
-                {/* Details */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-                    <div className="glass-panel" style={{ padding: '2rem', flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-                        <h3 style={{ color: 'var(--text-secondary)' }}>CURRENT CONDITIONS</h3>
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem', marginTop: '1rem' }}>
-                            <div>
-                                <div style={{ fontSize: '3rem', fontWeight: 'bold' }}>{data?.temperature}°C</div>
-                                <div style={{ color: '#888' }}>TEMPERATURE</div>
-                            </div>
-                            <div>
-                                <div style={{ fontSize: '2rem', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                    <FaWind /> 12 km/h
-                                </div>
-                                <div style={{ color: '#888' }}>WIND SPEED</div>
-                            </div>
-                            <div style={{ gridColumn: '1/-1', fontSize: '2rem', color: 'var(--neon-cyan)', textTransform: 'uppercase' }}>
-                                {data?.condition}
-                            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'minmax(300px, 1fr) 1.5fr', gap: '2rem', flex: 1 }}>
+
+                {/* Left Column: Decision & Metrics */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+
+                    {/* Main Decision Card */}
+                    <div className="glass-panel" style={{
+                        padding: '3rem 2rem',
+                        display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                        border: `1px solid ${isSafe ? 'var(--neon-green)' : 'var(--neon-red)'}`,
+                        background: `linear-gradient(145deg, rgba(0,0,0,0.6), ${isSafe ? 'rgba(0,255,157,0.05)' : 'rgba(255,0,60,0.05)'})`,
+                        boxShadow: `0 0 50px ${isSafe ? 'rgba(0, 255, 157, 0.1)' : 'rgba(255, 0, 60, 0.1)'}`,
+                        position: 'relative', overflow: 'hidden'
+                    }}>
+                        <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '5px', background: isSafe ? 'var(--neon-green)' : 'var(--neon-red)' }} />
+
+                        {isSafe ? <FaCheckCircle size={80} color="var(--neon-green)" style={{ filter: 'drop-shadow(0 0 10px var(--neon-green))' }} />
+                            : <FaExclamationTriangle size={80} color="var(--neon-red)" style={{ filter: 'drop-shadow(0 0 10px var(--neon-red))' }} />}
+
+                        <h2 style={{ fontSize: '3.5rem', margin: '1.5rem 0 0.5rem', color: isSafe ? 'var(--neon-green)' : 'var(--neon-red)', letterSpacing: '3px' }}>
+                            {isSafe ? 'SAFE' : 'HALT'}
+                        </h2>
+                        <span style={{ fontSize: '1.2rem', color: '#fff', textTransform: 'uppercase', letterSpacing: '2px', opacity: 0.8 }}>
+                            MINING OPERATIONS
+                        </span>
+
+                        <div style={{ marginTop: '2rem', background: 'rgba(0,0,0,0.4)', padding: '1rem', borderRadius: '8px', borderLeft: `4px solid ${isSafe ? 'var(--neon-green)' : 'var(--neon-red)'}` }}>
+                            <p style={{ margin: 0, fontSize: '1.1rem', color: '#eee', fontStyle: 'italic' }}>
+                                "{data?.recommendation || data?.reason}"
+                            </p>
                         </div>
                     </div>
 
-                    <div className="glass-panel" style={{ padding: '2rem', flex: 1 }}>
-                        <h3 style={{ color: 'var(--text-secondary)' }}>4-HOUR FORECAST</h3>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '1.5rem' }}>
-                            {['12:00', '13:00', '14:00', '15:00'].map((time, i) => (
-                                <div key={i} style={{ textAlign: 'center' }}>
-                                    <div style={{ color: '#888', marginBottom: '8px' }}>{time}</div>
-                                    <FaCloudSun size={24} color="#ccc" />
-                                    <div style={{ marginTop: '8px' }}>{data?.temperature + i}°</div>
+                    {/* Metrics Grid */}
+                    <div className="glass-panel" style={{ padding: '2rem' }}>
+                        <h3 style={{ color: 'var(--text-secondary)', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                            <FaThermometerHalf /> CURRENT CONDITIONS
+                        </h3>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem' }}>
+                            <div className="metric-box" style={{ background: 'rgba(255,255,255,0.03)', padding: '1.5rem', borderRadius: '12px', textAlign: 'center' }}>
+                                <div style={{ fontSize: '2.5rem', fontWeight: 'bold', color: '#fff' }}>{data?.temperature}°C</div>
+                                <div style={{ color: '#888', fontSize: '0.9rem', marginTop: '5px' }}>TEMPERATURE</div>
+                            </div>
+                            <div className="metric-box" style={{ background: 'rgba(255,255,255,0.03)', padding: '1.5rem', borderRadius: '12px', textAlign: 'center' }}>
+                                <div style={{ fontSize: '2.5rem', fontWeight: 'bold', color: '#fff' }}>{data?.humidity || 65}%</div>
+                                <div style={{ color: '#888', fontSize: '0.9rem', marginTop: '5px' }}>HUMIDITY</div>
+                            </div>
+                            <div className="metric-box" style={{ background: 'rgba(255,255,255,0.03)', padding: '1.5rem', borderRadius: '12px', textAlign: 'center' }}>
+                                <div style={{ fontSize: '2rem', fontWeight: 'bold', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+                                    <FaWind size={24} /> {data?.wind_speed || 12} <small style={{ fontSize: '1rem' }}>km/h</small>
+                                </div>
+                                <div style={{ color: '#888', fontSize: '0.9rem', marginTop: '5px' }}>WIND SPEED</div>
+                            </div>
+                            <div className="metric-box" style={{ background: 'rgba(255,255,255,0.03)', padding: '1.5rem', borderRadius: '12px', textAlign: 'center' }}>
+                                <div style={{ fontSize: '2rem', fontWeight: 'bold', color: 'var(--neon-cyan)', textTransform: 'uppercase' }}>
+                                    {data?.condition}
+                                </div>
+                                <div style={{ color: '#888', fontSize: '0.9rem', marginTop: '5px' }}>CONDITION</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Right Column: History & Forecast */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+
+                    {/* Forecast (Mock) */}
+                    <div className="glass-panel" style={{ padding: '2rem' }}>
+                        <h3 style={{ color: 'var(--text-secondary)', marginBottom: '1.5rem' }}>FORECAST TREND</h3>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', gap: '1rem' }}>
+                            {['+1h', '+2h', '+3h', '+4h'].map((time, i) => (
+                                <div key={i} style={{ flex: 1, background: 'rgba(0,0,0,0.2)', padding: '1rem', borderRadius: '8px', textAlign: 'center' }}>
+                                    <div style={{ color: '#888', marginBottom: '8px', fontSize: '0.9rem' }}>{time}</div>
+                                    <FaCloudSun size={24} color={i % 2 === 0 ? "#ffc107" : "#ccc"} />
+                                    <div style={{ marginTop: '10px', fontWeight: 'bold' }}>{Math.round(data?.temperature) + i}°</div>
                                 </div>
                             ))}
+                        </div>
+                    </div>
+
+                    {/* Report History */}
+                    <div className="glass-panel" style={{ padding: '0', flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+                        <div style={{ padding: '1.5rem', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
+                            <h3 style={{ margin: 0, color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                <FaHistory /> RECENT ALERTS & LOGS
+                            </h3>
+                        </div>
+                        <div style={{ overflowY: 'auto', flex: 1 }}>
+                            <table style={{ width: '100%', borderCollapse: 'collapse', color: '#eee' }}>
+                                <thead style={{ background: 'rgba(0,0,0,0.3)', position: 'sticky', top: 0 }}>
+                                    <tr>
+                                        <th style={{ padding: '15px', textAlign: 'left', color: '#aaa', fontSize: '0.9rem' }}>Time</th>
+                                        <th style={{ padding: '15px', textAlign: 'left', color: '#aaa', fontSize: '0.9rem' }}>Condition</th>
+                                        <th style={{ padding: '15px', textAlign: 'left', color: '#aaa', fontSize: '0.9rem' }}>Risk</th>
+                                        <th style={{ padding: '15px', textAlign: 'left', color: '#aaa', fontSize: '0.9rem' }}>Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {history.map((log, i) => (
+                                        <tr key={i} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)', transition: 'background 0.2s' }} className="hover-row">
+                                            <td style={{ padding: '15px' }}>{new Date(log.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</td>
+                                            <td style={{ padding: '15px' }}>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                    <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: log.condition.includes('Rain') ? 'var(--neon-blue)' : 'var(--neon-yellow)' }} />
+                                                    {log.condition}
+                                                </div>
+                                            </td>
+                                            <td style={{ padding: '15px' }}>
+                                                <span style={{
+                                                    padding: '4px 8px', borderRadius: '4px', fontSize: '0.8rem', fontWeight: 'bold',
+                                                    background: log.risk_level === 'HIGH' ? 'rgba(255,0,0,0.2)' : (log.risk_level === 'MEDIUM' ? 'rgba(255,165,0,0.2)' : 'rgba(0,255,0,0.2)'),
+                                                    color: log.risk_level === 'HIGH' ? 'var(--neon-red)' : (log.risk_level === 'MEDIUM' ? 'orange' : 'var(--neon-green)')
+                                                }}>
+                                                    {log.risk_level}
+                                                </span>
+                                            </td>
+                                            <td style={{ padding: '15px', color: '#ccc', fontStyle: 'italic', fontSize: '0.9rem' }}>{log.recommendation}</td>
+                                        </tr>
+                                    ))}
+                                    {history.length === 0 && (
+                                        <tr>
+                                            <td colSpan="4" style={{ padding: '2rem', textAlign: 'center', color: '#666' }}>No recent history available</td>
+                                        </tr>
+                                    )}
+                                </tbody>
+                            </table>
                         </div>
                     </div>
                 </div>

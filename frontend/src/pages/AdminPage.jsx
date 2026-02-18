@@ -6,7 +6,7 @@ const AdminPage = () => {
 
     // --- Tab 1: Create User State ---
     const [formData, setFormData] = useState({
-        name: '', userId: '', password: '', shift: 'Morning', assignedZone: ''
+        name: '', userId: '', password: '', shift: 'Morning', assignedZone: 'Sector 4' // Default value
     });
     const [photo, setPhoto] = useState(null);
     const [photoPreview, setPhotoPreview] = useState(null);
@@ -60,7 +60,8 @@ const AdminPage = () => {
 
             if (res.ok) {
                 setCreateStatus('success');
-                setFormData({ name: '', userId: '', shift: 'Morning', assignedZone: '' });
+                // Reset form with valid defaults
+                setFormData({ name: '', userId: '', password: '', shift: 'Morning', assignedZone: 'Sector 4' });
                 setPhoto(null);
                 setPhotoPreview(null);
                 setTimeout(() => setCreateStatus(null), 3000);
@@ -94,7 +95,9 @@ const AdminPage = () => {
 
     return (
         <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-            <div style={{ display: 'flex', gap: '2rem', marginBottom: '1.5rem', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '1rem' }}>
+            <div style={{
+                display: 'flex', gap: '2rem', marginBottom: '1.5rem', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '1rem'
+            }}>
                 <TabButton active={activeTab === 1} onClick={() => setActiveTab(1)} icon={FaUserPlus} label="Create User" />
                 <TabButton active={activeTab === 2} onClick={() => setActiveTab(2)} icon={FaUsers} label="All Users & Shifts" />
 
@@ -107,9 +110,9 @@ const AdminPage = () => {
                         <div className="glass-panel" style={{ flex: 1, padding: '2rem', maxWidth: '600px', overflowY: 'auto' }}>
                             <h3 style={{ marginTop: 0, marginBottom: '2rem', color: 'var(--neon-cyan)' }}>Add New Personnel</h3>
                             <form onSubmit={handleSubmitCreate} style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-                                <Input label="Full Name" value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} placeholder="e.g. John Doe" />
-                                <Input label="Worker ID" value={formData.userId} onChange={e => setFormData({ ...formData, userId: e.target.value })} placeholder="e.g. WKR-1049" />
-                                <Input label="Password" type="password" value={formData.password} onChange={e => setFormData({ ...formData, password: e.target.value })} placeholder="e.g. SecurePass123" />
+                                <Input label="Full Name" value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} placeholder="e.g. John Doe" autoComplete="name" />
+                                <Input label="Worker ID" value={formData.userId} onChange={e => setFormData({ ...formData, userId: e.target.value })} placeholder="e.g. WKR-1049" autoComplete="username" />
+                                <Input label="Password" type="password" value={formData.password} onChange={e => setFormData({ ...formData, password: e.target.value })} placeholder="e.g. SecurePass123" autoComplete="new-password" />
 
                                 <div>
                                     <label style={{ display: 'block', marginBottom: '8px', color: '#aaa', fontSize: '0.9rem' }}>Shift Assignment</label>

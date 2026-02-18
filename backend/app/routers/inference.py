@@ -1,6 +1,6 @@
-from fastapi import APIRouter, UploadFile, File, Depends, HTTPException
-from sqlalchemy.ext.asyncio import AsyncSession
-from app.database import get_db
+from fastapi import APIRouter, UploadFile, File, HTTPException
+# from sqlalchemy.ext.asyncio import AsyncSession
+# from app.database import get_db
 from app.models import DetectionEvent, RiskLevel
 from app.services.yolo_service import run_yolo_inference
 from app.services.risk_service import risk_service
@@ -11,8 +11,7 @@ router = APIRouter(prefix="/inference", tags=["Inference"])
 
 @router.post("/detect")
 async def detect_cracks(
-    file: UploadFile = File(...), 
-    db: AsyncSession = Depends(get_db)
+    file: UploadFile = File(...)
 ):
     """
     Main Pipeline:
@@ -99,9 +98,7 @@ async def detect_cracks(
                 risk_level=risk,
                 notes=f"Processed image: {file.filename}"
             )
-            db.add(event)
-            await db.commit()
-            await db.refresh(event)
+            await event.insert()
         except Exception as e:
             logger.error(f"Step 4 FAILED (Database): {e}")
             # Do not fail request just because DB failed, but log it

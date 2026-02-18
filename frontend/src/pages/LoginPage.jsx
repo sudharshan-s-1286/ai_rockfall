@@ -5,6 +5,7 @@ import { FaUser, FaLock, FaMountain, FaArrowLeft } from 'react-icons/fa';
 const LoginPage = () => {
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
+    const [isWorker, setIsWorker] = useState(false);
     const [error, setError] = useState(null);
     const navigate = useNavigate();
 
@@ -25,7 +26,7 @@ const LoginPage = () => {
                 localStorage.setItem('isAuthenticated', 'true');
                 localStorage.setItem('userRole', data.role);
                 localStorage.setItem('userName', data.name);
-                navigate('/live');
+                navigate('/live'); // Redirects both Admin and Worker to Dashboard as requested
             } else {
                 setError(data.detail || 'Login failed');
             }
@@ -95,13 +96,49 @@ const LoginPage = () => {
                     Secure Admin Login
                 </h3>
 
+                {/* Role Toggle */}
+                <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem', width: '100%' }}>
+                    <button
+                        type="button"
+                        onClick={() => setIsWorker(false)}
+                        style={{
+                            flex: 1,
+                            padding: '10px',
+                            background: !isWorker ? 'var(--neon-green)' : 'transparent',
+                            color: !isWorker ? '#000' : 'var(--neon-green)',
+                            border: '1px solid var(--neon-green)',
+                            borderRadius: '5px',
+                            cursor: 'pointer',
+                            fontWeight: 'bold'
+                        }}
+                    >
+                        ADMIN
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => setIsWorker(true)}
+                        style={{
+                            flex: 1,
+                            padding: '10px',
+                            background: isWorker ? 'var(--neon-cyan)' : 'transparent',
+                            color: isWorker ? '#000' : 'var(--neon-cyan)',
+                            border: '1px solid var(--neon-cyan)',
+                            borderRadius: '5px',
+                            cursor: 'pointer',
+                            fontWeight: 'bold'
+                        }}
+                    >
+                        WORKER ID
+                    </button>
+                </div>
+
                 <form onSubmit={handleLogin} style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
 
                     <div style={{ position: 'relative' }}>
                         <FaUser style={{ position: 'absolute', left: '15px', top: '14px', color: '#666' }} />
                         <input
                             type="text"
-                            placeholder="Username"
+                            placeholder={isWorker ? "Worker ID" : "Username"}
                             value={username}
                             onChange={(e) => setUsername(e.target.value)}
                             style={inputStyle}
@@ -124,7 +161,9 @@ const LoginPage = () => {
                     <button
                         type="submit"
                         style={{
-                            background: 'linear-gradient(90deg, var(--neon-cyan), var(--neon-green))',
+                            background: isWorker
+                                ? 'linear-gradient(90deg, var(--neon-cyan), var(--neon-blue))'
+                                : 'linear-gradient(90deg, var(--neon-cyan), var(--neon-green))',
                             border: 'none',
                             padding: '12px',
                             borderRadius: '8px',
@@ -133,11 +172,11 @@ const LoginPage = () => {
                             letterSpacing: '1px',
                             cursor: 'pointer',
                             marginTop: '1rem',
-                            boxShadow: '0 0 15px rgba(0,255,157,0.3)',
+                            boxShadow: isWorker ? '0 0 15px rgba(0,255,255,0.3)' : '0 0 15px rgba(0,255,157,0.3)',
                             transition: 'all 0.3s ease'
                         }}
                     >
-                        LOGIN
+                        {isWorker ? 'LOGIN AS WORKER' : 'LOGIN AS ADMIN'}
                     </button>
 
                     <div style={{ textAlign: 'center', marginTop: '1rem' }}>

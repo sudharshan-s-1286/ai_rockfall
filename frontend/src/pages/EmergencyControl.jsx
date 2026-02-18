@@ -86,6 +86,35 @@ const EmergencyControl = () => {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
                     <AlarmControl onTrigger={handleTrigger} />
 
+                    {/* Rescue Team Button */}
+                    <button
+                        onClick={async () => {
+                            if (!window.confirm("Are you sure you want to alert the Rescue Team?")) return;
+                            try {
+                                const res = await fetch('http://localhost:8000/alarm/rescue', { method: 'POST' });
+                                const data = await res.json();
+                                alert(data.detail || data.status);
+                            } catch (e) {
+                                alert("Failed to contact server.");
+                            }
+                        }}
+                        style={{
+                            background: '#00d4ff',
+                            color: '#000',
+                            border: 'none',
+                            padding: '1.5rem',
+                            fontSize: '1.2rem',
+                            fontWeight: 'bold',
+                            cursor: 'pointer',
+                            borderRadius: '8px',
+                            boxShadow: '0 0 20px rgba(0, 212, 255, 0.3)',
+                            textTransform: 'uppercase',
+                            letterSpacing: '1px'
+                        }}
+                    >
+                        🚑 Alert Rescue Team
+                    </button>
+
                     <div className="glass-panel" style={{ padding: '1.5rem', flex: 1 }}>
                         <h3 style={{ color: 'var(--text-secondary)', marginTop: 0 }}>RESPONSE PROTOCOLS</h3>
                         <ul style={{ lineHeight: '1.8', color: '#ccc' }}>

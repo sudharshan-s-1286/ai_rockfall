@@ -14,3 +14,5 @@ joblib
 python-dotenv
 tensorflow
 pillow
+motor
+beanie

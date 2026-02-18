@@ -12,9 +12,10 @@ const MapVisualizer = ({ workers = [], onZoneClick, selectedZoneId = null, heigh
 
     return (
         <div className="glass-panel" style={{ flex: 1, position: 'relative', overflow: 'hidden', padding: 0, height: height }}>
+            {/* Background Image - Using the generated 3D-style map image */}
             <div style={{
                 width: '100%', height: '100%',
-                background: 'url(/assets/mine_map.png) center/cover no-repeat',
+                background: 'url(/assets/open_pit_mine_map.png) center/cover no-repeat',
                 opacity: 0.8
             }}></div>
 
@@ -40,28 +41,21 @@ const MapVisualizer = ({ workers = [], onZoneClick, selectedZoneId = null, heigh
 
             {/* Workers */}
             {workers.map((w, idx) => {
-                // Simple heuristic for positioning if coords not provided, or map zone to coords
-                // Ideally backend gives x/y, or we calculate center of zone.
-                // For now, let's map zone to approximate position or use w.x/w.y if available
                 let top, left;
-                const zone = zones.find(z => z.id === w.assigned_zone || z.id === w.zone); // Handle naming discrepancy
+                const zone = zones.find(z => z.id === w.assigned_zone || z.id === w.zone);
 
                 if (zone) {
-                    // Randomize slightly within zone for visual separation
+                    // Randomize slightly within zone
                     const offsetX = (idx % 3) * 20 - 20;
                     const offsetY = (Math.floor(idx / 3)) * 20 - 20;
-                    // Parse % to px approximation for this demo or just use center
-                    // We'll stick to css calc for center
                     top = `calc(${zone.top} + ${parseFloat(zone.height) / 2}px + ${offsetY}px)`;
                     left = `calc(${zone.left} + ${parseFloat(zone.width) / 2}px + ${offsetX}px)`;
                 } else {
-                    top = w.y || '50%';
-                    left = w.x || '50%';
+                    top = '50%';
+                    left = '50%';
                 }
 
-                // Show only if status is Active or On-site. 
-                // But Admin visualizer might want to see all? 
-                // Requirement: "Active workers remain visible, others fade or disappear"
+                // Show only if active/on-site (filtered list passed from parent handles shift logic)
                 const opacity = w.status === 'Active' || w.is_onsite === "Yes" ? 1 : 0.3;
 
                 return (
@@ -69,23 +63,24 @@ const MapVisualizer = ({ workers = [], onZoneClick, selectedZoneId = null, heigh
                         position: 'absolute', top: top, left: left,
                         display: 'flex', flexDirection: 'column', alignItems: 'center',
                         opacity: opacity,
-                        transition: 'all 0.5s ease'
+                        transition: 'all 0.5s ease',
+                        zIndex: 10
                     }}>
                         <div style={{ position: 'relative' }}>
                             {w.photo_url ? (
-                                <img src={`http://localhost:8000${w.photo_url}`} style={{ width: 24, height: 24, borderRadius: '50%', border: '2px solid cyan' }} alt="" />
+                                <img src={`http://localhost:8000${w.photo_url}`} style={{ width: 28, height: 28, borderRadius: '50%', border: '2px solid cyan' }} alt="" />
                             ) : (
-                                <FaUser color="cyan" size={20} style={{ filter: 'drop-shadow(0 0 5px cyan)' }} />
+                                <FaUser color="cyan" size={24} style={{ filter: 'drop-shadow(0 0 5px cyan)' }} />
                             )}
                             {w.status === 'Active' && <div style={{ position: 'absolute', bottom: -2, right: -2, width: 8, height: 8, background: '#0f0', borderRadius: '50%' }} />}
-                        </div>
-                        <span style={{ fontSize: '0.7rem', background: 'rgba(0,0,0,0.7)', padding: '2px 4px', borderRadius: '4px', marginTop: '4px', color: '#fff' }}>
+                        </div >
+                        <span style={{ fontSize: '0.7rem', background: 'rgba(0,0,0,0.7)', padding: '2px 4px', borderRadius: '4px', marginTop: '4px', color: '#fff', whiteSpace: 'nowrap' }}>
                             {w.name}
                         </span>
-                    </div>
+                    </div >
                 );
             })}
-        </div>
+        </div >
     );
 };
 

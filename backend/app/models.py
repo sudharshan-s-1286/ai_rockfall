@@ -1,58 +1,87 @@
-from sqlalchemy import Column, Integer, String, Float, DateTime, Enum
-from app.database import Base
+from typing import Optional, List
+from beanie import Document
 from datetime import datetime
-import enum
+from pydantic import Field
 
-class RiskLevel(str, enum.Enum):
-    LOW = "LOW"
-    MEDIUM = "MEDIUM"
+from enum import Enum
+
+class RiskLevel(str, Enum):
     HIGH = "HIGH"
+    MEDIUM = "MEDIUM"
+    LOW = "LOW"
 
-class DetectionEvent(Base):
-    __tablename__ = "detection_events"
+class WeatherLog(Document):
+    timestamp: datetime = Field(default_factory=datetime.utcnow)
+    temperature: float
+    rainfall: float = 0.0
+    humidity: float = 0.0
+    wind_speed: float = 0.0
+    risk_score: float = 0.0
+    risk_level: str # LOW / MEDIUM / HIGH
+    condition: str
+    recommendation: str # Message to user
+    is_safe: str # "SAFE" / "UNSAFE" / "MONITOR" - keeping for compatibility
 
-    id = Column(Integer, primary_key=True, index=True)
-    timestamp = Column(DateTime, default=datetime.utcnow)
-    source = Column(String) # "camera" or "upload"
-    camera_id = Column(String, nullable=True)
+    class Settings:
+        name = "weather_history" # Updated collection name
+        indexes = [
+            "timestamp",
+            "risk_level"
+        ]
+
+class Alert(Document):
+    alert_type: str # CRACK / WEATHER / DEVICE
+    severity: str # LOW / MEDIUM / HIGH
+    source: str
+    area_id: Optional[str] = None
+    message: str
+    status: str = "ACTIVE" # ACTIVE / RESOLVED
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    resolved_at: Optional[datetime] = None
+
+    class Settings:
+        name = "weather_alerts" # Updated collection name
+        indexes = [
+            "severity",
+            "created_at",
+            "area_id"
+        ]
+
+class DetectionEvent(Document):
+    timestamp: datetime = Field(default_factory=datetime.utcnow)
+    source: str # "camera" or "upload"
+    camera_id: Optional[str] = None
     
     # AI Results
-    crack_count = Column(Integer, default=0)
-    max_confidence = Column(Float, default=0.0)
-    risk_level = Column(String) # Storing as string to correspond to RiskLevel or raw string
+    crack_count: int = 0
+    max_confidence: float = 0.0
+    risk_level: str # HIGH, MEDIUM, LOW
+    bbox_data: Optional[str] = None # JSON string or can be dict with Beanie
     
     # Metadata
-    image_path = Column(String, nullable=True) # Could store path if we saved images
-    notes = Column(String, nullable=True)
+    image_path: Optional[str] = None
+    notes: Optional[str] = None
 
-class AlarmLog(Base):
-    __tablename__ = "alarm_logs"
-    
-    id = Column(Integer, primary_key=True, index=True)
-    timestamp = Column(DateTime, default=datetime.utcnow)
-    action = Column(String) # "START" or "STOP"
-    status = Column(String) # "SUCCESS", "FAILED"
-    details = Column(String, nullable=True)
+    class Settings:
+        name = "detection_events"
+        indexes = [
+            "timestamp",
+            "risk_level"
+        ]
 
-class WeatherLog(Base):
-    __tablename__ = "weather_logs"
-    
-    id = Column(Integer, primary_key=True, index=True)
-    timestamp = Column(DateTime, default=datetime.utcnow)
-    condition = Column(String)
-    temperature = Column(Float)
-    is_safe = Column(String) # "SAFE" / "UNSAFE"
+class Worker(Document):
+    name: str
+    user_id: str
+    password: Optional[str] = None # Optional to prevent crashes on existing data
+    shift: str
+    photo_url: Optional[str] = None
+    assigned_zone: str
+    status: str = "Active"
+    is_onsite: str = "No"
 
-class Worker(Base):
-    __tablename__ = "workers"
-
-    id = Column(Integer, primary_key=True, index=True)
-    name = Column(String, index=True)
-    user_id = Column(String, unique=True, index=True) # E.g. "WKR-001"
-    password = Column(String) # Hashed password
-    shift = Column(String) # "Morning", "Evening", "Night"
-    photo_url = Column(String, nullable=True)
-    assigned_zone = Column(String) # "Zone A", "Sector 4"
-    status = Column(String, default="Active") # "Active", "Inactive"
-    is_onsite = Column(String, default="No") # "Yes", "No" - Simplifies frontend logic
-
+    class Settings:
+        name = "workers"
+        indexes = [
+            "user_id",
+            "name"
+        ]

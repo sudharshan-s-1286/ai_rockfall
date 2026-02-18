@@ -25,9 +25,12 @@ class Settings(BaseSettings):
     WEATHER_API_KEY: str = os.getenv("WEATHER_API_KEY", "dfef4025d24830c239bc0e5c005c085e")
     WEATHER_LAT: float = 12.9716 # Example: Bangalore, mining site location
     WEATHER_LON: float = 77.5946
+    WEATHER_HISTORY_COLLECTION: str = "weather_history"
+    WEATHER_ALERTS_COLLECTION: str = "weather_alerts"
     
     # Database
-    DATABASE_URL: str = "sqlite+aiosqlite:///./rocksense.db"
+    MONGODB_URI: str = "mongodb+srv://admin:admin@cluster0.45t37tr.mongodb.net/?appName=Cluster0"
+    MONGODB_DB_NAME: str = "rocksense_db"
 
     class Config:
         env_file = ".env"
