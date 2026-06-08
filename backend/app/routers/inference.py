@@ -78,16 +78,14 @@ async def detect_cracks(
             logger.warning(f"Metadata extraction failed: {e}")
 
         # 3. Trigger Alarm logic
+        # REMOVED: Automatic alarm triggering is now handled by the frontend
+        # to ensure the "Stop" button state is respected.
         if risk == "HIGH":
-            logger.warning("Step 3: HIGH RISK! Attempting to trigger Arduino...")
-            try:
-                 import asyncio
-                 asyncio.create_task(arduino_service.start_alarm())
-                 logger.info("Step 3: Triggered Alarm Task (Background)")
-            except Exception as IoTError:
-                 logger.error(f"Step 3 Failed (Non-critical): {IoTError}")
+            logger.info("Step 3: HIGH RISK Detected. Triggering Alarm handled by frontend...")
+            # We DO NOT call arduino_service here because frontend invokes /alarm/start 
+            # independently. This ensures we don't accidentally hang the inference thread.
         else:
-            logger.info("Step 3: Risk not HIGH, skipping alarm.")
+            logger.info("Step 3: Risk not HIGH.")
         
         # 4. Persistence
         try:

@@ -1,0 +1,18 @@
+Python Executable: C:\Users\Dharanidharan\AppData\Local\Programs\Python\Python311\python.exe
+Python Version: 3.11.9 (tags/v3.11.9:de54cf5, Apr  2 2024, 10:12:12) [MSC v.1938 64 bit (AMD64)]
+
+--- Checking Imports ---
+TensorFlow Version: 2.20.0
+WARNING:tensorflow:From C:\Users\Dharanidharan\AppData\Local\Programs\Python\Python311\Lib\site-packages\tf_keras\src\losses.py:2976: The name tf.losses.sparse_softmax_cross_entropy is deprecated. Please use tf.compat.v1.losses.sparse_softmax_cross_entropy instead.
+
+tf_keras Version: 2.20.1
+tensorflow.keras Version: 3.13.2
+
+--- Attempting to Load Model ---
+Using tf_keras.models.load_model
+Loading model from: c:\Users\Dharanidharan\OneDrive - sece.ac.in\Documents\CSBS 2ND YEAR\SEMESTER 3\HACKATON\Pals_Hack\Rocksense\Model_keras\keras_model.h5
+WARNING:tensorflow:From C:\Users\Dharanidharan\AppData\Local\Programs\Python\Python311\Lib\site-packages\tf_keras\src\backend.py:1400: The name tf.executing_eagerly_outside_functions is deprecated. Please use tf.compat.v1.executing_eagerly_outside_functions instead.
+
+WARNING:tensorflow:From C:\Users\Dharanidharan\AppData\Local\Programs\Python\Python311\Lib\site-packages\tf_keras\src\layers\normalization\batch_normalization.py:979: The name tf.nn.fused_batch_norm is deprecated. Please use tf.compat.v1.nn.fused_batch_norm instead.
+
+SUCCESS: Model loaded successfully!

@@ -79,9 +79,83 @@ class Worker(Document):
     status: str = "Active"
     is_onsite: str = "No"
 
+    # Health Details
+    blood_group: Optional[str] = None
+    emergency_contact: Optional[str] = None
+    medical_condition: Optional[str] = "None"
+    fitness_status: str = "Fit" # Fit, Unfit, Review
+    last_health_update: datetime = Field(default_factory=datetime.utcnow)
+
+    # Shift Management
+    next_shift: Optional[str] = None # Morning, Evening, Night
+    shift_start: Optional[str] = None # e.g. "08:00 AM"
+    shift_end: Optional[str] = None # e.g. "04:00 PM"
+
     class Settings:
         name = "workers"
         indexes = [
             "user_id",
             "name"
         ]
+
+class AIDetection(Document):
+    device_id: str
+    risk_level: str
+    confidence: float
+    crack_coordinates: List[float] # [x, y]
+    timestamp: datetime = Field(default_factory=datetime.utcnow)
+    is_stable: bool = False
+
+    class Settings:
+        name = "ai_detections"
+        indexes = ["device_id", "timestamp"]
+
+class WorkerTelemetry(Document):
+    worker_id: str
+    latitude: float
+    longitude: float
+    battery: int
+    status: str
+    timestamp: datetime = Field(default_factory=datetime.utcnow)
+
+    class Settings:
+        name = "worker_telemetry"
+        indexes = ["worker_id", "timestamp"]
+
+class HardwareDevice(Document):
+    device_id: str
+    device_type: str # Monitoring, Wearable, Alert
+    status: str
+    battery_level: Optional[int] = None
+    last_seen: datetime = Field(default_factory=datetime.utcnow)
+    
+    class Settings:
+        name = "hardware_devices"
+
+class AlertEvent(Document):
+    command: str
+    zone: str
+    risk_level: str
+    status: str = "ACTIVE" # ACTIVE or STOP
+    timestamp: datetime = Field(default_factory=datetime.utcnow)
+
+    class Settings:
+        name = "alert_events"
+
+class RiskHeatmapData(Document):
+    zone: str
+    risk_level: str
+    coordinates: List[float]
+    timestamp: datetime = Field(default_factory=datetime.utcnow)
+
+    class Settings:
+        name = "risk_heatmap_data"
+
+class DeviceHealthLog(Document):
+    device_id: str
+    status: str
+    message: str
+    timestamp: datetime = Field(default_factory=datetime.utcnow)
+
+    class Settings:
+        name = "device_health_logs"

@@ -1,106 +1,76 @@
-/*************************************************
- * RockSense Emergency Alarm Controller (Updated)
- * Features:
- * 1. START alarm via Serial command
- * 2. STOP alarm via Serial command
- * 3. Physical STOP button (emergency override)
- * 4. Blinking LED and Buzzer
- *************************************************/
+/*
+ * RockSense Mine Alert System - Arduino Firmware
+ * 
+ * This code monitors Serial commands from the Raspberry Pi (automatic)
+ * and the Backend (manual UI button). It also supports a physical
+ * emergency button on Pin 2.
+ */
 
-#define BUZZER_PIN 8
-#define LED_PIN 9
-#define STOP_BUTTON_PIN 7   // Physical STOP button (to GND)
+const int LED_PIN = 9;      // LED connected to pin 9
+const int BUZZER_PIN = 8;   // Buzzer connected to pin 8
+const int BUTTON_PIN = 2;   // Physical button on pin 2
 
-String command = "";
-bool alarmActive = false;
-
-// Blinking Variables
-unsigned long previousMillis = 0;
-const long interval = 1000; // Blink interval in ms
-int ledState = LOW;
+String input = "";
+bool alertActive = false;
+int lastButtonState = HIGH;
 
 void setup() {
   Serial.begin(9600);
-
-  pinMode(BUZZER_PIN, OUTPUT);
+  
   pinMode(LED_PIN, OUTPUT);
-  pinMode(STOP_BUTTON_PIN, INPUT_PULLUP); // Button uses internal pull-up
+  pinMode(BUZZER_PIN, OUTPUT);
+  pinMode(BUTTON_PIN, INPUT_PULLUP); // Use internal pull-up resistor
 
-  // Ensure alarm is OFF at startup
-  digitalWrite(BUZZER_PIN, LOW);
   digitalWrite(LED_PIN, LOW);
-
-  Serial.println("RockSense Alarm System Ready");
+  digitalWrite(BUZZER_PIN, LOW);
+  
+  Serial.println("RockSense Arduino Ready");
 }
 
 void loop() {
-
-  /* ================================
-     PHYSICAL STOP BUTTON (HIGHEST PRIORITY)
-     ================================ */
-  /* 
-  if (digitalRead(STOP_BUTTON_PIN) == LOW) {
-    stopAlarm();
-    Serial.println("ALARM_STOPPED_BY_PHYSICAL_BUTTON");
-    delay(300); // debounce
-  }
-  */
-
-  /* ================================
-     SERIAL COMMAND CONTROL
-     ================================ */
-  if (Serial.available()) {
-    command = Serial.readStringUntil('\n');
-    command.trim();
-
-    if (command == "START") {
-      startAlarm();
-      Serial.println("ALARM_STARTED");
-    }
-
-    else if (command == "STOP") {
-      stopAlarm();
-      Serial.println("ALARM_STOPPED_BY_DASHBOARD");
+  // 1. Handle Serial Commands
+  while (Serial.available()) {
+    char c = Serial.read();
+    if (c == '\n') {
+      input.trim();
+      processCommand(input);
+      input = "";  // clear buffer
+    } else {
+      input += c;
     }
   }
 
-  /* ================================
-     ALARM BLINKING LOGIC
-     ================================ */
-  if (alarmActive) {
-    unsigned long currentMillis = millis();
+  // 2. Handle Physical Button (Toggle State)
+  int currentButtonState = digitalRead(BUTTON_PIN);
+  if (currentButtonState == LOW && lastButtonState == HIGH) {
+    // Button pressed (transition from HIGH to LOW due to PULLUP)
+    alertActive = !alertActive;
+    updateAlertState();
+    delay(200); // Debounce
+  }
+  lastButtonState = currentButtonState;
+}
 
-    if (currentMillis - previousMillis >= interval) {
-      previousMillis = currentMillis;
+void processCommand(String cmd) {
+  // Support both "ALERT" (user request) and "HIGH_RISK" (backend default)
+  if (cmd == "ALERT" || cmd == "HIGH_RISK") {
+    alertActive = true;
+    updateAlertState();
+    Serial.println("ALARM_STARTED");
+  } 
+  else if (cmd == "STOP") {
+    alertActive = false;
+    updateAlertState();
+    Serial.println("ALARM_STOPPED");
+  }
+}
 
-      // Toggle State
-      if (ledState == LOW) {
-        ledState = HIGH;
-      } else {
-        ledState = LOW;
-      }
-
-      digitalWrite(LED_PIN, ledState);
-      digitalWrite(BUZZER_PIN, ledState);
-    }
+void updateAlertState() {
+  if (alertActive) {
+    digitalWrite(LED_PIN, HIGH);
+    digitalWrite(BUZZER_PIN, HIGH);
   } else {
-    // Ensure forced off if not active
     digitalWrite(LED_PIN, LOW);
     digitalWrite(BUZZER_PIN, LOW);
-    ledState = LOW;
   }
-}
-
-/* ================================
-   ALARM CONTROL FUNCTIONS
-   ================================ */
-
-void startAlarm() {
-  alarmActive = true;
-}
-
-void stopAlarm() {
-  alarmActive = false;
-  digitalWrite(BUZZER_PIN, LOW);
-  digitalWrite(LED_PIN, LOW);
 }

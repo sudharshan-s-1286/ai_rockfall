@@ -44,8 +44,8 @@ async def login(payload: LoginRequest):
     if not verify_password(payload.password, user.password):
         raise HTTPException(status_code=401, detail="Invalid Password")
 
-    # Determine role - for now assume created users are operators/viewers unless specific ID
-    role = "OPERATOR" 
+    # Determine role - for now assume created users are WORKERS
+    role = "WORKER" 
     
     return LoginResponse(
         user_id=user.user_id,

@@ -1,14 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { FaCloudSun, FaExclamationTriangle, FaCheckCircle, FaWind, FaTint, FaThermometerHalf, FaHistory } from 'react-icons/fa';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
 const WeatherIntel = () => {
     const [data, setData] = useState(null);
     const [history, setHistory] = useState([]);
+    const [forecast, setForecast] = useState([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
         fetchWeather();
         fetchHistory();
+        fetchForecast();
     }, []);
 
     const fetchHistory = async () => {
@@ -31,6 +34,41 @@ const WeatherIntel = () => {
             setData({ condition: "Sunny", temperature: 32, decision: "SAFE", reason: "System offline, displaying fallback data." });
         }
         setLoading(false);
+    };
+
+    const fetchForecast = async () => {
+        try {
+            const res = await fetch('http://localhost:8000/weather/forecast');
+            const json = await res.json();
+            if (json.list) {
+                // Map to chart data format
+                const chartData = json.list.map(item => {
+                    const date = new Date(item.dt * 1000);
+                    return {
+                        day: date.toLocaleDateString('en-US', { weekday: 'short' }),
+                        temp: item.main.temp,
+                        rain: item.rain ? item.rain['3h'] || 0 : 0
+                    };
+                });
+                
+                // If it's 3-hourly, we might have multiple per day. Deduplicate to 1 per day.
+                const dailyData = chartData.reduce((acc, curr) => {
+                    if (!acc.find(item => item.day === curr.day)) {
+                        acc.push(curr);
+                    }
+                    return acc;
+                }, []);
+                
+                setForecast(dailyData.slice(0, 7)); // Take up to 7 days
+            }
+        } catch (e) {
+            console.error("Failed to fetch forecast", e);
+            // Fallback chart data
+            setForecast([
+                { day: 'Mon', temp: 32 }, { day: 'Tue', temp: 33 }, { day: 'Wed', temp: 30 },
+                { day: 'Thu', temp: 28 }, { day: 'Fri', temp: 29 }, { day: 'Sat', temp: 31 }, { day: 'Sun', temp: 32 }
+            ]);
+        }
     };
 
     if (loading) return (
@@ -126,17 +164,38 @@ const WeatherIntel = () => {
                 {/* Right Column: History & Forecast */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
 
-                    {/* Forecast (Mock) */}
+                    {/* 7-Day Forecast Chart */}
                     <div className="glass-panel" style={{ padding: '2rem' }}>
-                        <h3 style={{ color: 'var(--text-secondary)', marginBottom: '1.5rem' }}>FORECAST TREND</h3>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', gap: '1rem' }}>
-                            {['+1h', '+2h', '+3h', '+4h'].map((time, i) => (
-                                <div key={i} style={{ flex: 1, background: 'rgba(0,0,0,0.2)', padding: '1rem', borderRadius: '8px', textAlign: 'center' }}>
-                                    <div style={{ color: '#888', marginBottom: '8px', fontSize: '0.9rem' }}>{time}</div>
-                                    <FaCloudSun size={24} color={i % 2 === 0 ? "#ffc107" : "#ccc"} />
-                                    <div style={{ marginTop: '10px', fontWeight: 'bold' }}>{Math.round(data?.temperature) + i}°</div>
-                                </div>
-                            ))}
+                        <h3 style={{ color: 'var(--text-secondary)', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                            <FaCloudSun /> 7-DAY FORECAST & RISK TREND
+                        </h3>
+                        <div style={{ width: '100%', height: '200px' }}>
+                            <ResponsiveContainer width="100%" height="100%">
+                                <LineChart data={forecast}>
+                                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" vertical={false} />
+                                    <XAxis 
+                                        dataKey="day" 
+                                        stroke="#888" 
+                                        fontSize={12} 
+                                        tickLine={false} 
+                                        axisLine={false}
+                                    />
+                                    <Tooltip 
+                                        contentStyle={{ backgroundColor: 'rgba(0,0,0,0.8)', border: '1px solid #333', borderRadius: '8px' }}
+                                        labelStyle={{ color: 'var(--neon-green)', fontWeight: 'bold' }}
+                                        itemStyle={{ color: '#fff' }}
+                                    />
+                                    <Line 
+                                        type="monotone" 
+                                        dataKey="temp" 
+                                        stroke="var(--neon-cyan)" 
+                                        strokeWidth={3} 
+                                        dot={{ r: 4, fill: 'var(--neon-cyan)', strokeWidth: 0 }}
+                                        activeDot={{ r: 6, fill: '#fff', stroke: 'var(--neon-cyan)', strokeWidth: 2 }}
+                                        name="Temp (°C)"
+                                    />
+                                </LineChart>
+                            </ResponsiveContainer>
                         </div>
                     </div>
 

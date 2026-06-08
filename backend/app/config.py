@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 from pydantic_settings import BaseSettings
 from functools import lru_cache
 
@@ -14,11 +15,15 @@ class Settings(BaseSettings):
     YOLO_PREDICT_URL: str = "https://predict.ultralytics.com"
     
     # Keras Model
-    KERAS_MODEL_PATH: str = r"C:\Users\sukir\OneDrive - sece.ac.in\Documents\CSBS 2ND YEAR\SEMESTER 3\HACKATON\Pals_Hack\Rocksense\Model_keras\keras_model.h5"
-    LABELS_PATH: str = r"C:\Users\sukir\OneDrive - sece.ac.in\Documents\CSBS 2ND YEAR\SEMESTER 3\HACKATON\Pals_Hack\Rocksense\Model_keras\labels.txt"
+    BASE_DIR: Path = Path(__file__).resolve().parent.parent
+    RESOURCE_ROOT: str = r"C:\Users\Dharanidharan\OneDrive - sece.ac.in\Documents\CSBS 2ND YEAR\SEMESTER 3\HACKATON\Pals_Hack\Rocksense\raspberrypi_rocksence"
+    KERAS_MODEL_PATH: str = os.path.join(RESOURCE_ROOT, "Model_keras", "keras_model.h5")
+    LABELS_PATH: str = os.path.join(RESOURCE_ROOT, "Model_keras", "labels.txt")
+    YOLO_PATH: str = os.path.join(RESOURCE_ROOT, "Yolo11.pt")
     
     # IoT
-    ARDUINO_PORT: str = "COM7"  # Default, can be overridden by env var
+    ARDUINO_PORT: str = "COM8"  # Primary
+    ARDUINO_PORTS: list = ["COM8", "COM5", "COM6", "COM4", "COM7"]
     ARDUINO_BAUDRATE: int = 9600
     
     # Weather

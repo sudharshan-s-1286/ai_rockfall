@@ -12,6 +12,8 @@ import DeviceHealth from './pages/DeviceHealth';
 import Settings from './pages/Settings';
 import LoginPage from './pages/LoginPage';
 import LandingPage from './pages/LandingPage';
+import WorkerDashboard from './pages/WorkerDashboard';
+import WorkerManagement from './pages/WorkerManagement';
 
 // Simple Protected Route Wrapper
 const ProtectedRoute = ({ children }) => {
@@ -73,7 +75,15 @@ function App() {
         <Route path="/weather" element={<WeatherIntel />} />
         <Route path="/health" element={<DeviceHealth />} />
         <Route path="/settings" element={<Settings />} />
+        <Route path="/workers" element={<WorkerManagement />} />
       </Route>
+
+      {/* Standalone Worker Dashboard (No Sidebar) */}
+      <Route path="/worker-dashboard" element={
+        <ProtectedRoute>
+          <WorkerDashboard />
+        </ProtectedRoute>
+      } />
 
       {/* Catch all - redirect to Landing */}
       <Route path="*" element={<Navigate to="/" replace />} />

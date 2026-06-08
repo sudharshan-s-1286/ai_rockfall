@@ -1,0 +1,787 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>RockSense — Live Stream Dashboard</title>
+  <style>
+    /* ── Reset & Base ─────────────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg-deep:    #0a0e1a;
+      --bg-card:    #111827;
+      --bg-card2:   #1a2235;
+      --border:     #1e2d45;
+      --accent:     #00d4ff;
+      --green:      #00e676;
+      --yellow:     #ffab00;
+      --red:        #ff1744;
+      --text:       #e2e8f0;
+      --text-dim:   #64748b;
+      --font:       'Inter', system-ui, sans-serif;
+      --radius:     12px;
+      --shadow:     0 4px 24px rgba(0,0,0,0.5);
+    }
+
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;900&display=swap');
+
+    body {
+      background: var(--bg-deep);
+      color: var(--text);
+      font-family: var(--font);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ── Header ── */
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 18px 32px;
+      background: rgba(17,24,39,0.95);
+      border-bottom: 1px solid var(--border);
+      backdrop-filter: blur(12px);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .logo-icon {
+      width: 38px; height: 38px;
+      background: linear-gradient(135deg, #00d4ff, #0062ff);
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 20px;
+    }
+    .logo h1 { font-size: 1.35rem; font-weight: 700; letter-spacing: -0.5px; }
+    .logo span { color: var(--accent); }
+
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+    }
+    #time-display {
+      font-size: 0.85rem;
+      color: var(--text-dim);
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* ── Connection Badge ── */
+    .conn-badge {
+      display: flex; align-items: center; gap: 8px;
+      padding: 6px 14px;
+      border-radius: 50px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      border: 1px solid transparent;
+      transition: all 0.3s;
+    }
+    .conn-badge .dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      animation: pulse 2s infinite;
+    }
+    .conn-badge.connected    { background: rgba(0,230,118,0.1); border-color: var(--green);  color: var(--green);  }
+    .conn-badge.connected .dot { background: var(--green); }
+    .conn-badge.disconnected { background: rgba(255,23,68,0.1); border-color: var(--red);    color: var(--red);    }
+    .conn-badge.disconnected .dot { background: var(--red); animation: none; }
+    .conn-badge.connecting   { background: rgba(255,171,0,0.1); border-color: var(--yellow); color: var(--yellow); }
+    .conn-badge.connecting .dot { background: var(--yellow); }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50%       { opacity: 0.5; transform: scale(1.3); }
+    }
+
+    /* ── Layout ── */
+    main {
+      display: grid;
+      grid-template-columns: 1fr 340px;
+      grid-template-rows: auto auto;
+      gap: 20px;
+      padding: 24px 32px;
+      max-width: 1600px;
+      margin: 0 auto;
+    }
+
+    /* ── Video Feed ── */
+    .video-panel {
+      grid-row: 1 / 3;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      box-shadow: var(--shadow);
+      position: relative;
+    }
+    .panel-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 20px;
+      border-bottom: 1px solid var(--border);
+    }
+    .panel-title {
+      font-size: 0.85rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--text-dim);
+    }
+    .live-badge {
+      display: flex; align-items: center; gap: 6px;
+      font-size: 0.72rem;
+      font-weight: 700;
+      color: var(--red);
+      background: rgba(255,23,68,0.12);
+      border: 1px solid rgba(255,23,68,0.3);
+      padding: 3px 10px;
+      border-radius: 50px;
+      letter-spacing: 1px;
+    }
+    .live-badge .rdot {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: var(--red);
+      animation: pulse 1.2s infinite;
+    }
+
+    #video-canvas {
+      width: 100%;
+      aspect-ratio: 4/3;
+      background: #000;
+      display: block;
+    }
+
+    .video-overlay-info {
+      position: absolute;
+      bottom: 0;
+      left: 0; right: 0;
+      padding: 12px 20px;
+      background: linear-gradient(transparent, rgba(0,0,0,0.75));
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      pointer-events: none;
+    }
+    .fps-counter {
+      font-size: 0.75rem;
+      color: rgba(255,255,255,0.7);
+      font-variant-numeric: tabular-nums;
+    }
+    #frame-timestamp {
+      font-size: 0.72rem;
+      color: rgba(200,220,255,0.6);
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* ── Status Panel ── */
+    .status-panel {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    /* ── Risk Badge ── */
+    .risk-display {
+      padding: 28px 20px;
+      text-align: center;
+      border-bottom: 1px solid var(--border);
+    }
+    .risk-label {
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      color: var(--text-dim);
+      margin-bottom: 14px;
+    }
+    .risk-badge {
+      display: inline-block;
+      padding: 12px 36px;
+      border-radius: 50px;
+      font-size: 1.5rem;
+      font-weight: 900;
+      letter-spacing: 2px;
+      transition: all 0.5s ease;
+      border: 2px solid transparent;
+    }
+    .risk-badge.SAFE       { background:rgba(0,230,118,0.12); color:var(--green);  border-color:var(--green);  box-shadow:0 0 20px rgba(0,230,118,0.15); }
+    .risk-badge.WARNING    { background:rgba(255,171,0,0.12);  color:var(--yellow); border-color:var(--yellow); box-shadow:0 0 20px rgba(255,171,0,0.15); }
+    .risk-badge.DANGER     { background:rgba(255,23,68,0.15);  color:var(--red);    border-color:var(--red);    box-shadow:0 0 30px rgba(255,23,68,0.3);
+                             animation: danger-pulse 0.8s ease-in-out infinite; }
+    .risk-badge.UNKNOWN    { background:rgba(100,116,139,0.12);color:var(--text-dim);border-color:var(--border); }
+
+    @keyframes danger-pulse {
+      0%, 100% { box-shadow: 0 0 30px rgba(255,23,68,0.3); }
+      50%       { box-shadow: 0 0 50px rgba(255,23,68,0.6); }
+    }
+
+    /* ── Status Detail ── */
+    .status-text {
+      font-size: 0.8rem;
+      color: var(--text-dim);
+      margin-top: 10px;
+      min-height: 20px;
+      transition: color 0.3s;
+    }
+
+    /* ── Stats Grid ── */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1px;
+      background: var(--border);
+      border-top: 1px solid var(--border);
+    }
+    .stat-cell {
+      background: var(--bg-card);
+      padding: 16px 14px;
+      text-align: center;
+    }
+    .stat-value {
+      font-size: 1.5rem;
+      font-weight: 700;
+      font-variant-numeric: tabular-nums;
+      color: var(--accent);
+      line-height: 1;
+    }
+    .stat-label {
+      font-size: 0.68rem;
+      color: var(--text-dim);
+      margin-top: 4px;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+    }
+
+    /* ── Verification Bar ── */
+    .verification-bar {
+      padding: 14px 20px;
+      border-top: 1px solid var(--border);
+    }
+    .vbar-label {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.75rem;
+      color: var(--text-dim);
+      margin-bottom: 8px;
+    }
+    .vbar-track {
+      height: 6px;
+      background: rgba(255,255,255,0.05);
+      border-radius: 50px;
+      overflow: hidden;
+    }
+    .vbar-fill {
+      height: 100%;
+      border-radius: 50px;
+      transition: width 0.4s ease, background 0.4s;
+      background: var(--green);
+    }
+
+    /* ── Detection Log Panel ── */
+    .detection-panel {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+    .detection-list {
+      max-height: 340px;
+      overflow-y: auto;
+      padding: 10px;
+    }
+    .detection-list::-webkit-scrollbar { width: 4px; }
+    .detection-list::-webkit-scrollbar-track { background: transparent; }
+    .detection-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+    .detection-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 12px;
+      border-radius: 8px;
+      margin-bottom: 6px;
+      background: var(--bg-card2);
+      border-left: 3px solid transparent;
+      animation: slide-in 0.3s ease;
+      font-size: 0.78rem;
+    }
+    .detection-item.confirmed { border-left-color: var(--red); }
+    .detection-item.detecting { border-left-color: var(--yellow); }
+    .detection-item.safe      { border-left-color: var(--green); }
+
+    @keyframes slide-in {
+      from { opacity: 0; transform: translateX(-8px); }
+      to   { opacity: 1; transform: translateX(0); }
+    }
+
+    .di-icon { font-size: 1rem; }
+    .di-body { flex: 1; }
+    .di-title { font-weight: 600; color: var(--text); }
+    .di-sub { color: var(--text-dim); margin-top: 2px; }
+    .di-time { color: var(--text-dim); font-size: 0.68rem; font-variant-numeric: tabular-nums; }
+
+    .empty-log {
+      text-align: center;
+      padding: 40px 20px;
+      color: var(--text-dim);
+      font-size: 0.85rem;
+    }
+
+    /* ── Server Config ── */
+    .config-bar {
+      padding: 14px 20px;
+      background: var(--bg-card2);
+      border-top: 1px solid var(--border);
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+    .config-bar input {
+      flex: 1;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      padding: 8px 12px;
+      font-size: 0.82rem;
+      font-family: monospace;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .config-bar input:focus { border-color: var(--accent); }
+    .config-bar button {
+      background: linear-gradient(135deg, #0062ff, #00d4ff);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      padding: 8px 16px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity 0.2s;
+      white-space: nowrap;
+    }
+    .config-bar button:hover { opacity: 0.85; }
+
+    /* ── Responsive ── */
+    @media (max-width: 900px) {
+      main {
+        grid-template-columns: 1fr;
+        grid-template-rows: auto;
+        padding: 16px;
+      }
+      .video-panel { grid-row: auto; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ── Header ─────────────────────────────────────────────────────────── -->
+<header>
+  <div class="logo">
+    <div class="logo-icon">⛰️</div>
+    <h1>Rock<span>Sense</span></h1>
+  </div>
+  <div class="header-right">
+    <div id="time-display">--:--:--</div>
+    <div id="conn-badge" class="conn-badge connecting">
+      <div class="dot"></div>
+      <span id="conn-text">Connecting…</span>
+    </div>
+  </div>
+</header>
+
+<!-- ── Main Grid ──────────────────────────────────────────────────────── -->
+<main>
+
+  <!-- Video Feed -->
+  <div class="video-panel">
+    <div class="panel-header">
+      <span class="panel-title">📷 CAM-01 (rapberrypi 2GB) — Live Feed</span>
+      <div class="live-badge"><div class="rdot"></div>LIVE</div>
+    </div>
+    <canvas id="video-canvas" width="640" height="480"></canvas>
+    <div class="video-overlay-info">
+      <span class="fps-counter" id="fps-counter">-- FPS</span>
+      <span id="frame-timestamp">--</span>
+    </div>
+  </div>
+
+  <!-- Status Panel -->
+  <div class="status-panel">
+    <div class="risk-display">
+      <div class="risk-label">Detection Status</div>
+      <div id="risk-badge" class="risk-badge UNKNOWN">UNKNOWN</div>
+      <div class="status-text" id="status-text">Waiting for Pi connection…</div>
+    </div>
+
+    <div class="stats-grid">
+      <div class="stat-cell">
+        <div class="stat-value" id="stat-fps">--</div>
+        <div class="stat-label">Stream FPS</div>
+      </div>
+      <div class="stat-cell">
+        <div class="stat-value" id="stat-det">0</div>
+        <div class="stat-label">Detections</div>
+      </div>
+      <div class="stat-cell">
+        <div class="stat-value" id="stat-conf">--</div>
+        <div class="stat-label">Confidence</div>
+      </div>
+      <div class="stat-cell">
+        <div class="stat-value" id="stat-events">0</div>
+        <div class="stat-label">Confirmed</div>
+      </div>
+    </div>
+
+    <div class="verification-bar">
+      <div class="vbar-label">
+        <span>Crack Persistence</span>
+        <span id="vbar-pct">0%</span>
+      </div>
+      <div class="vbar-track">
+        <div class="vbar-fill" id="vbar-fill" style="width:0%"></div>
+      </div>
+    </div>
+
+    <!-- Server URL input -->
+    <div class="config-bar">
+      <input type="text" id="server-url" placeholder="ws://192.168.1.100:8000/ws/live-feed"
+             value="" />
+      <button onclick="reconnect()">Connect</button>
+    </div>
+  </div>
+
+  <!-- Detection Log -->
+  <div class="detection-panel">
+    <div class="panel-header">
+      <span class="panel-title">🔍 Detection Log</span>
+      <button onclick="clearLog()"
+              style="background:transparent;border:1px solid var(--border);color:var(--text-dim);
+                     border-radius:6px;padding:3px 10px;font-size:0.72rem;cursor:pointer;">
+        Clear
+      </button>
+    </div>
+    <div class="detection-list" id="detection-list">
+      <div class="empty-log">No detections yet.<br>Waiting for camera stream…</div>
+    </div>
+  </div>
+
+</main>
+
+<script>
+// ── Configuration ──────────────────────────────────────────────────────────
+const DEFAULT_SERVER = `ws://${location.hostname || '192.168.1.100'}:8000/ws/live-feed`;
+const MAX_LOG_ITEMS  = 30;
+
+// ── State ──────────────────────────────────────────────────────────────────
+let ws           = null;
+let reconnecting = false;
+let reconnectTimer = null;
+let frameCount   = 0;
+let confirmedCount = 0;
+let lastFrameTime = 0;
+let liveFPS      = 0;
+let fpsCalcTimer = null;
+
+// ── DOM ────────────────────────────────────────────────────────────────────
+const canvas      = document.getElementById('video-canvas');
+const ctx         = canvas.getContext('2d');
+const connBadge   = document.getElementById('conn-badge');
+const connText    = document.getElementById('conn-text');
+const riskBadge   = document.getElementById('risk-badge');
+const statusText  = document.getElementById('status-text');
+const fpsEl       = document.getElementById('fps-counter');
+const statFps     = document.getElementById('stat-fps');
+const statDet     = document.getElementById('stat-det');
+const statConf    = document.getElementById('stat-conf');
+const statEvents  = document.getElementById('stat-events');
+const vbarFill    = document.getElementById('vbar-fill');
+const vbarPct     = document.getElementById('vbar-pct');
+const frameTs     = document.getElementById('frame-timestamp');
+const logEl       = document.getElementById('detection-list');
+const serverInput = document.getElementById('server-url');
+
+// ── Clock ──────────────────────────────────────────────────────────────────
+function updateClock() {
+  document.getElementById('time-display').textContent =
+    new Date().toLocaleTimeString();
+}
+setInterval(updateClock, 1000);
+updateClock();
+
+// ── Offline Canvas ─────────────────────────────────────────────────────────
+function drawOffline() {
+  canvas.width  = 640;
+  canvas.height = 480;
+  ctx.fillStyle = '#000';
+  ctx.fillRect(0, 0, 640, 480);
+  ctx.fillStyle = 'rgba(0,100,255,0.15)';
+  ctx.fillRect(0, 0, 640, 480);
+  ctx.fillStyle = '#2a4a8a';
+  ctx.font = 'bold 28px Inter, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('PI CAMERA OFFLINE', 320, 220);
+  ctx.font = '16px Inter, sans-serif';
+  ctx.fillStyle = '#64748b';
+  ctx.fillText('Waiting for Raspberry Pi connection …', 320, 260);
+}
+drawOffline();
+
+// ── WebSocket Connection ───────────────────────────────────────────────────
+function getServerUrl() {
+  return (serverInput.value.trim() || DEFAULT_SERVER);
+}
+
+function setConnState(state) {
+  connBadge.className = `conn-badge ${state}`;
+  const labels = {
+    connected:    '✓ Pi Connected',
+    disconnected: '✗ Pi Disconnected',
+    connecting:   'Connecting…',
+  };
+  connText.textContent = labels[state] || state;
+}
+
+function connect(url) {
+  if (ws) { ws.close(); ws = null; }
+  setConnState('connecting');
+
+  ws = new WebSocket(url);
+
+  ws.onopen = () => {
+    setConnState('connected');
+    reconnecting = false;
+    clearTimeout(reconnectTimer);
+    addLog('system', '🟢 Connected to RockSense backend', '');
+  };
+
+  ws.onmessage = (evt) => {
+    try {
+      const data = JSON.parse(evt.data);
+      handleMessage(data);
+    } catch(e) { /* ignore */ }
+  };
+
+  ws.onclose = () => {
+    setConnState('disconnected');
+    drawOffline();
+    resetStatus();
+    addLog('system', '🔴 Server disconnected', 'Auto-reconnecting in 3s…');
+    scheduleReconnect(url);
+  };
+
+  ws.onerror = () => {
+    setConnState('disconnected');
+  };
+}
+
+function scheduleReconnect(url) {
+  if (reconnecting) return;
+  reconnecting = true;
+  reconnectTimer = setTimeout(() => {
+    reconnecting = false;
+    connect(url);
+  }, 3000);
+}
+
+function reconnect() {
+  clearTimeout(reconnectTimer);
+  reconnecting = false;
+  connect(getServerUrl());
+}
+
+// ── Message Handler ────────────────────────────────────────────────────────
+function handleMessage(data) {
+  const type = data.type;
+
+  if (type === 'frame') {
+    renderFrame(data);
+    updateStats(data);
+  } else if (type === 'pi_disconnected') {
+    drawOffline();
+    resetStatus();
+    addLog('system', '📷 Pi camera disconnected', data.message || '');
+  } else if (type === 'status') {
+    addLog('system', '🔵 ' + (data.message || 'Status update'), '');
+  } else if (type === 'ping') {
+    /* heartbeat — ignore */
+  }
+}
+
+// ── Video Renderer ─────────────────────────────────────────────────────────
+function renderFrame(data) {
+  if (!data.frame) return;
+  const img = new Image();
+  img.onload = () => {
+    canvas.width  = img.naturalWidth  || 640;
+    canvas.height = img.naturalHeight || 480;
+    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+    // Draw bounding boxes
+    if (data.detections && data.detections.length > 0) {
+      data.detections.forEach(det => {
+        const [x1, y1, x2, y2] = det.bbox || [];
+        if (x1 == null) return;
+        const conf   = det.confidence || 0;
+        const cls    = det.class || 'crack';
+        const color  = data.confirmed ? '#ff1744' : '#ffab00';
+        ctx.strokeStyle = color;
+        ctx.lineWidth   = 2;
+        ctx.strokeRect(x1, y1, x2-x1, y2-y1);
+        ctx.fillStyle = color;
+        ctx.fillRect(x1, y1 - 18, (cls.length + 8) * 7, 18);
+        ctx.fillStyle = '#000';
+        ctx.font = '11px Inter, monospace';
+        ctx.fillText(`${cls} ${(conf * 100).toFixed(0)}%`, x1 + 4, y1 - 4);
+      });
+    }
+
+    // Timestamp overlay
+    const now = new Date();
+    ctx.fillStyle = 'rgba(0,0,0,0.45)';
+    ctx.fillRect(canvas.width - 90, canvas.height - 22, 88, 20);
+    ctx.fillStyle = '#94a3b8';
+    ctx.font = '11px Inter, monospace';
+    ctx.textAlign = 'right';
+    ctx.fillText(now.toLocaleTimeString(), canvas.width - 6, canvas.height - 7);
+    ctx.textAlign = 'left';
+  };
+  img.src = 'data:image/jpeg;base64,' + data.frame;
+
+  // FPS calculation
+  frameCount++;
+  const now = performance.now();
+  if (now - lastFrameTime > 2000) {
+    liveFPS = (frameCount / ((now - lastFrameTime) / 1000)).toFixed(1);
+    frameCount   = 0;
+    lastFrameTime = now;
+    fpsEl.textContent = `${liveFPS} FPS`;
+    statFps.textContent = liveFPS;
+  }
+  if (lastFrameTime === 0) lastFrameTime = now;
+
+  // Frame timestamp
+  if (data.timestamp) {
+    frameTs.textContent = new Date(data.timestamp).toLocaleTimeString();
+  }
+}
+
+// ── Stats & Status ─────────────────────────────────────────────────────────
+function updateStats(data) {
+  const status    = data.status || 'SAFE';
+  const ratio     = data.ratio || 0;
+  const confirmed = data.confirmed || false;
+  const dets      = data.detections || [];
+
+  // Detection count
+  statDet.textContent = dets.length;
+
+  // Confidence
+  if (dets.length > 0) {
+    const avgConf = dets.reduce((s, d) => s + (d.confidence || 0), 0) / dets.length;
+    statConf.textContent = `${(avgConf * 100).toFixed(0)}%`;
+  } else {
+    statConf.textContent = '--';
+  }
+
+  // Confirmation count
+  if (confirmed) {
+    confirmedCount++;
+    statEvents.textContent = confirmedCount;
+  }
+
+  // Persistence bar
+  const pct = Math.round(ratio * 100);
+  vbarFill.style.width = pct + '%';
+  vbarFill.style.background = pct > 60 ? '#ff1744' : pct > 30 ? '#ffab00' : '#00e676';
+  vbarPct.textContent = pct + '%';
+
+  // Risk badge + status
+  updateRiskBadge(status, confirmed, dets);
+
+  // Log events
+  if (confirmed) {
+    addLog('confirmed',
+      `⚠️  CRACK CONFIRMED — ${dets.length} crack(s)`,
+      `Persistence: ${pct}% | Avg conf: ${statConf.textContent}`
+    );
+  }
+}
+
+function updateRiskBadge(status, confirmed, dets) {
+  let level, label, info;
+
+  if (confirmed || status.includes('CONFIRMED')) {
+    level = 'DANGER'; label = 'DANGER'; info = 'Crack confirmed — AI alert active';
+  } else if (status.includes('DETECTED') || dets.length > 0) {
+    level = 'WARNING'; label = 'WARNING'; info = status;
+  } else if (status === 'SAFE') {
+    level = 'SAFE'; label = 'SAFE'; info = 'No crack detected';
+  } else {
+    level = 'UNKNOWN'; label = 'UNKNOWN'; info = status;
+  }
+
+  riskBadge.className = `risk-badge ${level}`;
+  riskBadge.textContent = label;
+  statusText.textContent = info;
+}
+
+function resetStatus() {
+  riskBadge.className = 'risk-badge UNKNOWN';
+  riskBadge.textContent = 'UNKNOWN';
+  statusText.textContent = 'Pi camera offline';
+  vbarFill.style.width = '0%';
+  vbarPct.textContent = '0%';
+}
+
+// ── Detection Log ──────────────────────────────────────────────────────────
+let logItems = [];
+function addLog(type, title, sub) {
+  const now = new Date().toLocaleTimeString();
+  const icons = { confirmed: '🔴', detecting: '🟡', safe: '🟢', system: '🔵' };
+  const item = { type, title, sub, time: now };
+  logItems.unshift(item);
+  if (logItems.length > MAX_LOG_ITEMS) logItems.pop();
+  renderLog();
+}
+
+function renderLog() {
+  if (logItems.length === 0) {
+    logEl.innerHTML = '<div class="empty-log">No detections yet.<br>Waiting for camera stream…</div>';
+    return;
+  }
+  logEl.innerHTML = logItems.map(({ type, title, sub, time }) => `
+    <div class="detection-item ${type}">
+      <div class="di-body">
+        <div class="di-title">${title}</div>
+        ${sub ? `<div class="di-sub">${sub}</div>` : ''}
+      </div>
+      <div class="di-time">${time}</div>
+    </div>
+  `).join('');
+}
+
+function clearLog() {
+  logItems = [];
+  renderLog();
+}
+
+// ── Init ───────────────────────────────────────────────────────────────────
+serverInput.value = DEFAULT_SERVER;
+connect(getServerUrl());
+</script>
+</body>
+</html>

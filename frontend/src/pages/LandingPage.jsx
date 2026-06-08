@@ -382,43 +382,30 @@ const FeaturesView = () => (
                     title="Emergency Control System"
                     desc="Automated evacuation protocols and alert dissemination."
                 />
-            </div>
-        </FeatureSection>
-
-        {/* Phase II: Upcoming Features - Schematic Blueprint */}
-        <FeatureSection
-            title="DEVELOPMENT PIPELINE"
-            subtitle="PHASE II: INFRASTRUCTURE EXPANSION"
-            glowColor="#9d4edd"
-            isUpcoming
-        >
-            <div style={{
-                background: 'rgba(157, 78, 221, 0.05)',
-                border: '1px dashed rgba(157, 78, 221, 0.4)',
-                padding: '1rem 2rem',
-                borderRadius: '4px',
-                marginBottom: '3rem',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '1rem',
-                fontFamily: 'monospace'
-            }}>
-                <div style={{ width: '10px', height: '10px', background: '#9d4edd', borderRadius: '50%', boxShadow: '0 0 10px #9d4edd' }} className="blink-anim" />
-                <span style={{ color: '#e0aaff', fontSize: '0.9rem', letterSpacing: '1px' }}>
-                    STATUS: IMPLEMENTATION IN PROGRESS
-                </span>
-            </div>
-
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: '2rem' }}>
-                <FeatureCard variant="blueprint" icon={FaMicrochip} title="Industrial-Grade Hardware Integration Platform" />
-                <FeatureCard variant="blueprint" icon={FaMountain} title="Multi-Sensor Slope Stability Monitoring System" />
-                <FeatureCard variant="blueprint" icon={FaNetworkWired} title="Advanced Sensor Data Fusion Architecture" />
-                <FeatureCard variant="blueprint" icon={FaChartLine} title="Predictive Rockfall Risk Forecasting Engine" />
-                <FeatureCard variant="blueprint" icon={FaBullhorn} title="Probability-Based Early Warning System" />
-                <FeatureCard variant="blueprint" icon={FaCommentDots} title="Automated Multi-Channel Alerting (SMS & Email)" />
-                <FeatureCard variant="blueprint" icon={FaMapMarkedAlt} title="GIS-Enabled Dynamic Risk Heatmap Visualization" />
-                <FeatureCard variant="blueprint" icon={FaLayerGroup} title="Digital Elevation Model (DEM) Integration" />
-                <FeatureCard variant="blueprint" icon={FaCloud} title="Scalable Multi-Site Cloud Monitoring Infrastructure" />
+                <FeatureCard
+                    variant="active"
+                    icon={FaMicrochip}
+                    title="Hardware Edge Integration"
+                    desc="Raspberry Pi & Arduino networks deployed for structural processing."
+                />
+                <FeatureCard
+                    variant="active"
+                    icon={FaMapMarkedAlt}
+                    title="Dynamic Risk Heatmaps"
+                    desc="Real-time geographic overlays of AI crack detections."
+                />
+                <FeatureCard
+                    variant="active"
+                    icon={FaBullhorn}
+                    title="Mine Alert System"
+                    desc="Automated sirens and visual beacons triggered by edge AI."
+                />
+                <FeatureCard
+                    variant="active"
+                    icon={FaNetworkWired}
+                    title="Worker Telemetry Wearables"
+                    desc="Real-time GPS worker tracking and battery monitoring."
+                />
             </div>
         </FeatureSection>
 

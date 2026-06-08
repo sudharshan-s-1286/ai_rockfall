@@ -1,0 +1,370 @@
+================================================================================
+  ROCKSENSE — Raspberry Pi Setup & Operating Guide
+  Hardware: Raspberry Pi 4B / 5  +  Pi Camera Module (v1 / v2 / v3 / HQ)
+  Date    : March 2026
+================================================================================
+
+TABLE OF CONTENTS
+-----------------
+  1. Folder Structure
+  2. Required Hardware
+  3. One-Time Hardware Setup (Camera + Arduino)
+  4. Software Installation
+  5. Running the System
+  6. How the System Works (End-to-End)
+  7. Understanding the Display
+  8. Arduino Wiring & Code
+  9. Troubleshooting
+ 10. CLI Options
+
+================================================================================
+1. FOLDER STRUCTURE
+================================================================================
+
+  raspberrypi_rocksence/
+  ├── rocksense_pi.py                 ← Main detection script (run this)
+  ├── Yolo11.pt                       ← YOLOv11 crack detection model
+  ├── rocksense_random_forest.pkl     ← Random Forest risk classifier
+  ├── requirements_pi.txt             ← Python packages to install
+  ├── SETUP_GUIDE.txt                 ← This file
+  └── Model_keras/
+      ├── keras_model.h5              ← Keras model (backup — not used by main script)
+      └── labels.txt                  ← Risk labels: 0=HIGH, 1=MEDIUM, 2=LOW
+
+  NOTE: The script expects Yolo11.pt and rocksense_random_forest.pkl to be in
+        the SAME folder as rocksense_pi.py. Do NOT move them.
+
+================================================================================
+2. REQUIRED HARDWARE
+================================================================================
+
+  ┌──────────────────────────────────────────────────────────────┐
+  │  Component                  │  Details                       │
+  ├──────────────────────────────────────────────────────────────┤
+  │  Raspberry Pi               │  Pi 4B (2GB+ RAM) or Pi 5      │
+  │  Pi Camera Module           │  v1, v2, v3, or HQ Camera      │
+  │  CSI Ribbon Cable           │  Included with camera          │
+  │  MicroSD Card               │  16GB+ Class 10 recommended    │
+  │  Arduino (Uno / Mega)       │  For mine alert triggering     │
+  │  USB-A to USB-B Cable       │  Pi → Arduino                  │
+  │  5V Power Supply            │  3A for Pi 4, 5A for Pi 5      │
+  └──────────────────────────────────────────────────────────────┘
+
+================================================================================
+3. ONE-TIME HARDWARE SETUP
+================================================================================
+
+---- A. Pi Camera Module -------------------------------------------------------
+
+  STEP 1: Connect the CSI ribbon cable
+    • Power OFF the Raspberry Pi completely.
+    • Locate the CSI port (labelled "CAMERA" on the PCB).
+    • Lift the plastic locking clip on the CSI port.
+    • Insert the ribbon cable with the BLUE side facing the USB ports.
+    • Press down the locking clip to secure it.
+    • Power ON the Pi.
+
+  STEP 2: Enable the camera in Raspberry Pi OS
+    Run in terminal:
+      sudo raspi-config
+
+    Navigate to:
+      Interface Options → Camera → Enable → Finish → Reboot
+
+    For Raspberry Pi OS Bullseye / Bookworm (kernel 6.x):
+    Open /boot/config.txt and confirm this line exists:
+      camera_auto_detect=1
+
+    If you are using a Pi Camera Module v1:
+      Add the following line instead:
+        dtoverlay=ov5647
+
+    For Pi Camera Module v2:
+        dtoverlay=imx219
+
+    For Pi Camera Module v3:
+        dtoverlay=imx708
+
+  STEP 3: Test the camera
+    In terminal:
+      libcamera-hello
+
+    You should see a live preview window for 5 seconds.
+    If you see an error, the ribbon cable is likely loose — reseat it.
+
+---- B. Arduino ----------------------------------------------------------------
+
+  STEP 1: Connect Arduino via USB to the Pi.
+
+  STEP 2: Find the port:
+    ls /dev/tty*
+    Look for:  /dev/ttyUSB0  or  /dev/ttyACM0
+
+  STEP 3: Upload the Alert sketch (Alert_On.ino) to the Arduino using
+          the Arduino IDE on another computer, or use arduino-cli on the Pi:
+    sudo apt install arduino-cli
+    arduino-cli compile --fqbn arduino:avr:uno Alert_On.ino
+    arduino-cli upload  --fqbn arduino:avr:uno --port /dev/ttyUSB0 Alert_On.ino
+
+  STEP 4: Grant serial permissions:
+    sudo usermod -aG dialout $USER
+    (Log out and back in for this to take effect.)
+
+================================================================================
+4. SOFTWARE INSTALLATION
+================================================================================
+
+  Run these commands on the Raspberry Pi:
+
+  ---- 4.1  Update system ----
+  sudo apt update && sudo apt upgrade -y
+
+  ---- 4.2  Install system dependencies ----
+  sudo apt install -y python3-pip python3-venv libopenblas-dev \
+    libatlas-base-dev gstreamer1.0-tools gstreamer1.0-plugins-good \
+    gstreamer1.0-plugins-bad libgstreamer1.0-dev \
+    python3-opencv
+
+  ---- 4.3  Create a virtual environment ----
+  cd ~/rocksense
+  python3 -m venv venv
+  source venv/bin/activate
+
+  ---- 4.4  Copy project files to Pi ----
+  Copy the entire raspberrypi_rocksence/ folder to the Pi.
+  Recommended location:  ~/rocksense/
+
+  ---- 4.5  Install Python packages ----
+  cd ~/rocksense/raspberrypi_rocksence
+  pip install -r requirements_pi.txt
+
+  ---- 4.6  Verify installation ----
+  python3 -c "import ultralytics, cv2, joblib, serial; print('All OK')"
+
+  Expected output:  All OK
+
+================================================================================
+5. RUNNING THE SYSTEM
+================================================================================
+
+  ---- Normal start (both models, default settings) ----
+  cd ~/rocksense/raspberrypi_rocksence
+  source ../venv/bin/activate
+  python3 rocksense_pi.py
+
+  ---- With custom serial port ----
+  python3 rocksense_pi.py --port /dev/ttyACM0
+
+  ---- Run headless (no display / SSH session) ----
+  Add to the top of rocksense_pi.py:
+    import os
+    os.environ["DISPLAY"] = ":0"
+  Or run with a virtual framebuffer:
+    Xvfb :1 -screen 0 1280x720x24 &
+    DISPLAY=:1 python3 rocksense_pi.py
+
+  ---- Auto-start on boot (systemd) ----
+  Create /etc/systemd/system/rocksense.service:
+
+    [Unit]
+    Description=RockSense AI Detection
+    After=network.target
+
+    [Service]
+    User=pi
+    WorkingDirectory=/home/pi/rocksense/raspberrypi_rocksence
+    ExecStart=/home/pi/rocksense/venv/bin/python3 rocksense_pi.py
+    Restart=always
+
+    [Install]
+    WantedBy=multi-user.target
+
+  Then:
+    sudo systemctl enable rocksense
+    sudo systemctl start  rocksense
+    sudo journalctl -u rocksense -f     # follow logs
+
+================================================================================
+6. HOW THE SYSTEM WORKS (END-TO-END)
+================================================================================
+
+  ╔════════════════════════════════════════════════════════════════╗
+  ║  Pi Camera Module                                             ║
+  ║     CSI → libcamera/GStreamer → OpenCV frame (640×480)        ║
+  ╚════════════╦═══════════════════════════════════════════════════╝
+               ║  Every 2nd frame (FRAME_SKIP=2)
+               ▼
+  ╔════════════════════════════════════════════════════════════════╗
+  ║  YOLOv11 (Yolo11.pt)                                          ║
+  ║     Detects cracks / hazards in the frame                     ║
+  ║     Filters by confidence ≥ 0.5                               ║
+  ║     Returns: bounding boxes, confidence scores                ║
+  ╚════════════╦═══════════════════════════════════════════════════╝
+               ║
+       ┌────── No crack ─────────────────────┐
+       │                                     │
+       ▼  Crack detected                     ▼  Monitoring...
+  ╔════════════════════════╗           (loop back to camera)
+  ║  Stabilisation Window  ║
+  ║  15-second timer starts║
+  ║  Records every detection║
+  ║  Tracks confidences &  ║
+  ║  bounding box areas    ║
+  ╚═══════════╦════════════╝
+              ║                    ╔═══════════════════════╗
+      Detection gone?──────Yes────▶ Reset — back to        ║
+              ║                    ║ Monitoring...          ║
+              ║ Still present      ╚═══════════════════════╝
+              ║ after 15 seconds
+              ▼
+  ╔════════════════════════════════════════════════════════════════╗
+  ║  Feature Extraction                                            ║
+  ║     • avg_confidence    (mean YOLO conf over 15s)             ║
+  ║     • max_confidence    (peak YOLO conf over 15s)             ║
+  ║     • detection_count   (total crack detections)              ║
+  ║     • avg_box_area      (average bounding box px²)            ║
+  ║     • duration_s        (elapsed time = ~15s)                 ║
+  ╚════════════╦═══════════════════════════════════════════════════╝
+               ▼
+  ╔════════════════════════════════════════════════════════════════╗
+  ║  Random Forest Classifier (rocksense_random_forest.pkl)        ║
+  ║     Input  : 5-feature vector                                  ║
+  ║     Output : 0=HIGH  /  1=MEDIUM  /  2=LOW                    ║
+  ╚════════════╦═══════════════════════════════════════════════════╝
+               ▼
+  ╔════════════════════════════════════════════════════════════════╗
+  ║  Arduino Alert (via /dev/ttyUSB0 @ 9600 baud)                 ║
+  ║     HIGH risk   →  Send "ALERT\n"  (triggers mine alarm)      ║
+  ║     Risk clears →  Send "STOP\n"   (silences alarm)           ║
+  ║     Same state  →  Nothing sent    (no flood)                 ║
+  ╚════════════════════════════════════════════════════════════════╝
+
+================================================================================
+7. UNDERSTANDING THE DISPLAY
+================================================================================
+
+  ┌──────────────────────────────────────────────────────────────┐
+  │ Verifying (8s remaining)                    Risk: HIGH  │
+  │                                                              │
+  │   ┌───────────────────────┐                                 │
+  │   │   Crack 0.87          │  ← Yellow/Red bounding box      │
+  │   └───────────────────────┘                                 │
+  │                                              11:45:22        │
+  │ ████████████████░░░░░░░░   Verifying: 8.2s                  │
+  └──────────────────────────────────────────────────────────────┘
+
+  Top-left text:
+    "Monitoring..."           — No crack visible
+    "Crack detected..."       — Crack just found, timer starting
+    "Verifying (Xs remaining)"— Stabilisation in progress
+    "Final Risk: HIGH"        — Classification complete
+
+  Top-right badge:
+    GREEN  = LOW risk
+    YELLOW = MEDIUM risk
+    RED    = HIGH risk  (Arduino ALERT sent)
+
+  Bottom bar:
+    Yellow progress bar shrinking toward zero during verification.
+
+  Press 'q' in the window to exit cleanly.
+
+================================================================================
+8. ARDUINO WIRING & CODE REFERENCE
+================================================================================
+
+  The Arduino sketch (Alert_On.ino) must:
+    1. Wait for serial data on 9600 baud.
+    2. If it receives "ALERT", activate the buzzer/siren/LED.
+    3. If it receives "STOP",  deactivate the alarm.
+
+  Minimal Arduino sketch example:
+  -------------------------------------------------------
+  const int BUZZER_PIN = 8;
+
+  void setup() {
+    Serial.begin(9600);
+    pinMode(BUZZER_PIN, OUTPUT);
+  }
+
+  void loop() {
+    if (Serial.available()) {
+      String cmd = Serial.readStringUntil('\n');
+      cmd.trim();
+      if (cmd == "ALERT") {
+        digitalWrite(BUZZER_PIN, HIGH);
+      } else if (cmd == "STOP") {
+        digitalWrite(BUZZER_PIN, LOW);
+      }
+    }
+  }
+  -------------------------------------------------------
+
+================================================================================
+9. TROUBLESHOOTING
+================================================================================
+
+  PROBLEM: "Cannot open Raspberry Pi Camera Module"
+  FIX:
+    • Run:  libcamera-hello      — if this fails, the camera isn't enabled.
+    • Run:  sudo raspi-config    — Interface Options → Camera → Enable
+    • Reseat the CSI ribbon cable (most common cause).
+    • Check /boot/config.txt for:  camera_auto_detect=1
+
+  PROBLEM: "GStreamer pipeline failed — falling back to /dev/video0"
+  FIX: This is normal if libcamera isn't configured. V4L2 fallback should work.
+    • Install GStreamer plugins: sudo apt install gstreamer1.0-plugins-bad
+    • Check camera driver: v4l2-ctl --list-devices
+
+  PROBLEM: "Arduino not reachable on /dev/ttyUSB0"
+  FIX:
+    • Try /dev/ttyACM0: python3 rocksense_pi.py --port /dev/ttyACM0
+    • Check permissions: sudo usermod -aG dialout $USER  (then re-login)
+    • Check cable and USB connection.
+
+  PROBLEM: "YOLO model not found: Yolo11.pt"
+  FIX:
+    • Ensure Yolo11.pt is in the SAME folder as rocksense_pi.py.
+    • Run from the correct directory:  cd ~/rocksense/raspberrypi_rocksence
+
+  PROBLEM: High CPU / system slow
+  FIX:
+    • FRAME_SKIP is set to 2 (processes every 2nd frame) — increase to 3 or 4
+      by editing the FRAME_SKIP constant at the top of rocksense_pi.py.
+    • Lower camera resolution in the script (CAMERA_WIDTH / CAMERA_HEIGHT).
+    • Ensure good cooling on the Pi (heatsink + fan recommended).
+
+  PROBLEM: "ImportError: No module named 'ultralytics'"
+  FIX:
+    source ~/rocksense/venv/bin/activate
+    pip install -r requirements_pi.txt
+
+  PROBLEM: Low detection accuracy
+  FIX:
+    • Lower the confidence threshold:  python3 rocksense_pi.py --conf 0.4
+    • Ensure the camera is positioned 30–100 cm from the slope face.
+    • Adequate lighting is required for accurate crack detection.
+
+================================================================================
+10. CLI OPTIONS (Quick Reference)
+================================================================================
+
+  python3 rocksense_pi.py [OPTIONS]
+
+  Option           Default                          Description
+  ─────────────    ──────────────────────────────   ─────────────────────────
+  --yolo-model     Yolo11.pt                        Path to YOLO weights
+  --rf-model       rocksense_random_forest.pkl      Path to RF model
+  --port           /dev/ttyUSB0                     Arduino serial port
+  --baud           9600                             Serial baud rate
+  --conf           0.5                              YOLO confidence threshold
+  --stab-time      15                               Stabilisation window (sec)
+
+  Examples:
+    python3 rocksense_pi.py --conf 0.45 --stab-time 10
+    python3 rocksense_pi.py --port /dev/ttyACM0 --baud 115200
+
+================================================================================
+  END OF GUIDE
+  For issues, check rocksense_pi.log in the same folder for detailed logs.
+================================================================================

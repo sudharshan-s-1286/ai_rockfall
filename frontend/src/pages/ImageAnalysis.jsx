@@ -12,11 +12,38 @@ const ImageAnalysis = () => {
     // State
     const [riskLevel, setRiskLevel] = useState(null); // null = waiting for upload
     const [crackCount, setCrackCount] = useState(0);
+    const [detections, setDetections] = useState([]);
     const [isAnalyzing, setIsAnalyzing] = useState(false);
+    const [isAlarmActive, setIsAlarmActive] = useState(false);
     const [logs, setLogs] = useState([]);
+
+    // Alarm Control
+    const triggerAlarm = async () => {
+        if (isAlarmActive) return;
+        setIsAlarmActive(true);
+        try {
+            await fetch(`${API_BASE}/alarm/start`, { method: 'POST' });
+            addLog("ALARM TRIGGERED DUE TO HIGH RISK!");
+        } catch (e) {
+            console.error("Alarm Trigger Error:", e);
+            addLog("Failed to trigger alarm.");
+        }
+    };
+
+    const stopAlarm = async () => {
+        setIsAlarmActive(false);
+        try {
+            await fetch(`${API_BASE}/alarm/stop`, { method: 'POST' });
+            addLog("Alarm Stopped by User.");
+        } catch (e) {
+            console.error("Alarm Stop Error:", e);
+            addLog("Failed to stop alarm.");
+        }
+    };
 
     // Handlers
     const handleImageSelected = async (file) => {
+        setDetections([]);
         setIsAnalyzing(true);
         addLog(`Uploaded ${file.name} for analysis...`);
 
@@ -37,7 +64,25 @@ const ImageAnalysis = () => {
             const data = await res.json();
             setRiskLevel(data.risk_level);
             setCrackCount(data.crack_count || 0);
+
+            const rawElements = data.raw_yolo?.data || (data.raw_yolo?.images?.[0]?.results) || [];
+            const mappedDetections = rawElements.map((det, i) => {
+                const rd = data.risk_details && data.risk_details[i];
+                return {
+                    class: det.name || det.class || "Low_Risk",
+                    confidence: det.confidence,
+                    bbox: [det.box.x1, det.box.y1, det.box.x2, det.box.y2],
+                    severity: rd ? rd.label : null
+                };
+            });
+            setDetections(mappedDetections);
+
             addLog(`Analysis Complete: Risk ${data.risk_level}, Cracks: ${data.crack_count}`);
+
+            // Auto-trigger alarm if High Risk
+            if (data.risk_level === 'HIGH') {
+                triggerAlarm();
+            }
 
         } catch (e) {
             console.error(e);
@@ -120,7 +165,7 @@ const ImageAnalysis = () => {
                         background: 'rgba(0,0,0,0.6)'
                     }}>
                         <div style={{ width: '80%', height: '80%' }}>
-                            <DropZone onImageSelected={handleImageSelected} isAnalyzing={isAnalyzing} />
+                            <DropZone onImageSelected={handleImageSelected} isAnalyzing={isAnalyzing} detections={detections} />
                         </div>
                     </div>
                 </div>
@@ -128,7 +173,29 @@ const ImageAnalysis = () => {
 
             {/* RIGHT COLUMN: Action & Stats */}
             <div className="right-panel" style={{ gridColumn: 3, gridRow: '1 / -1' }}>
-                <AlarmControl onTrigger={handleAlarmTrigger} />
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginBottom: '1rem' }}>
+                    <AlarmControl onTrigger={handleAlarmTrigger} />
+
+                    {/* Emergency Stop Button - Only appears when alarm is active */}
+                    {isAlarmActive && (
+                        <button
+                            className="btn-danger blink"
+                            style={{
+                                width: '100%',
+                                padding: '1rem',
+                                fontSize: '1.2rem',
+                                fontWeight: 'bold',
+                                background: 'red',
+                                color: 'white',
+                                border: '2px solid white',
+                                boxShadow: '0 0 15px red'
+                            }}
+                            onClick={stopAlarm}
+                        >
+                            STOP ALARM
+                        </button>
+                    )}
+                </div>
 
                 <div className="glass-panel" style={{ padding: '1.5rem', flex: 1 }}>
                     <h3 style={{ marginTop: 0, color: 'var(--text-secondary)' }}>DETECTED FLAWS</h3>

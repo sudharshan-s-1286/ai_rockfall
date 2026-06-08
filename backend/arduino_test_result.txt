@@ -1,0 +1,3 @@
+Available ports: ['COM3', 'COM4', 'COM5']
+
+--- Testing COM3 ---

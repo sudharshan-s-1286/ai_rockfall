@@ -26,7 +26,12 @@ const LoginPage = () => {
                 localStorage.setItem('isAuthenticated', 'true');
                 localStorage.setItem('userRole', data.role);
                 localStorage.setItem('userName', data.name);
-                navigate('/live'); // Redirects both Admin and Worker to Dashboard as requested
+                localStorage.setItem('userId', data.user_id);
+                if (data.role && data.role.toUpperCase() === 'WORKER') {
+                    navigate('/worker-dashboard');
+                } else {
+                    navigate('/live');
+                }
             } else {
                 setError(data.detail || 'Login failed');
             }

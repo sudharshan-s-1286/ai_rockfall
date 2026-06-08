@@ -1,10 +1,12 @@
 import asyncio
 from motor.motor_asyncio import AsyncIOMotorClient
 from app.config import get_settings
-
-# Need to set up path to import app.config
 import sys
 import os
+
+# Fix encoding
+sys.stdout.reconfigure(encoding='utf-8')
+
 sys.path.append(os.getcwd())
 
 async def inspect_data():
@@ -19,22 +21,23 @@ async def inspect_data():
     print(f"Found {count} documents in 'workers' collection.")
     
     cursor = collection.find({})
+    required_fields = ["name", "user_id", "shift", "assigned_zone", "status", "is_onsite", "fitness_status"]
+    
+    idx = 0
     async for doc in cursor:
-        print("\n--- Document ---")
-        # Print raw dict
-        print(doc)
-        
-        # Check for missing fields required by Worker model
-        required_fields = ["name", "user_id", "shift", "assigned_zone"]
+        idx += 1
+        print(f"\n--- Document {idx} ---")
         missing = [f for f in required_fields if f not in doc]
         if missing:
-            print(f"❌ CRITICAL: Missing required fields: {missing}")
+            print(f"MISSING FIELDS: {missing}")
+            print(f"ID: {doc.get('_id')}")
         else:
-            print("✅ Basic required fields present.")
-
+            print("All required fields present.")
+            
         # Check types
-        if "_id" in doc:
-            print(f"ID Type: {type(doc['_id'])}")
+        for f in required_fields:
+            if f in doc and doc[f] is None:
+                 print(f"NULL FIELD: {f}")
 
 if __name__ == "__main__":
     try:

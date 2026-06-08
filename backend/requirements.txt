@@ -16,3 +16,6 @@ tensorflow
 pillow
 motor
 beanie
+ultralytics
+opencv-python
+websockets>=12.0

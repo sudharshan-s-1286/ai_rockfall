@@ -4,7 +4,7 @@ import Navbar from './Navbar';
 import {
     FaVideo, FaImage, FaExclamationTriangle, FaHistory,
     FaCloudSun, FaMapMarkedAlt, FaServer, FaCog, FaMountain, FaUserShield,
-    FaSignOutAlt
+    FaSignOutAlt, FaUsers
 } from 'react-icons/fa';
 
 const SidebarItem = ({ to, icon: Icon, label }) => (
@@ -86,6 +86,9 @@ const Layout = ({ connectionStatus }) => {
                     <SidebarItem to="/history" icon={FaHistory} label="History Logs" />
                     <SidebarItem to="/settings" icon={FaCog} label="Settings" />
 
+                    <div style={{ fontSize: '0.75rem', color: '#666', margin: '20px 0 8px', paddingLeft: '12px', fontWeight: 'bold' }}>MANAGEMENT</div>
+                    <SidebarItem to="/workers" icon={FaUsers} label="Worker Mgmt" />
+
                     <div style={{ height: '1px', background: 'var(--border-color)', margin: '16px 0' }}></div>
 
                     <button
@@ -120,7 +123,25 @@ const Layout = ({ connectionStatus }) => {
 
             {/* Main Content Area */}
             <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', position: 'relative' }}>
-                {/* Top Bar (Simplified, mostly for mobile or breadcrumbs later, usually handled in page) */}
+                
+                {/* Top Bar */}
+                <div style={{ 
+                    height: '60px', 
+                    borderBottom: '1px solid var(--border-color)', 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    padding: '0 2rem',
+                    background: 'rgba(0, 0, 0, 0.2)',
+                    backdropFilter: 'blur(10px)'
+                }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#ffeb3b' }}>
+                        <FaMapMarkedAlt size={18} />
+                        <span style={{ fontWeight: '500', fontSize: '1rem', color: '#fff' }}>
+                            Current Location : <span style={{ color: 'var(--neon-green)' }}>Indian Institute of Technology Madras</span>
+                        </span>
+                    </div>
+                </div>
+
                 <div style={{ flex: 1, overflowY: 'auto', padding: '2rem' }}>
                     <Outlet />
                 </div>

@@ -1,0 +1,8 @@
+# RockSense — Raspberry Pi inference requirements
+# Install with: pip install -r requirements_pi.txt
+ultralytics>=8.0.0
+opencv-python-headless   # use headless build on Pi; swap for opencv-python if you need full GUI
+joblib>=1.3.0
+scikit-learn>=1.3.0
+pyserial>=3.5
+numpy>=1.24.0
